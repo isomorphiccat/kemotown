@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Noto_Sans_KR } from "next/font/google";
 import "./globals.css";
+import SessionProviderWrapper from "./SessionProviderWrapper"; // New import
+import UserSessionDisplay from "@/components/auth/UserSessionDisplay"; // New import
+import Link from "next/link"; // For the header link
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -33,7 +36,20 @@ export default function RootLayout({
       <body
         className={`${geistSans.variable} ${geistMono.variable} ${notoSansKr.variable} antialiased`}
       >
-        {children}
+        <SessionProviderWrapper> {/* Wrap content with SessionProviderWrapper */}
+          <header style={{ padding: '1rem', borderBottom: '1px solid #eee', display: 'flex', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#f8f9fa' }}>
+            <Link href="/" style={{ textDecoration: 'none', color: 'inherit' }}>
+              <h1 style={{ margin: 0, fontSize: '1.5rem' }}>Kemotown</h1>
+            </Link>
+            <UserSessionDisplay /> {/* Display session status and sign-out button */}
+          </header>
+          <main style={{ padding: '1rem', flexGrow: 1 }}>
+            {children}
+          </main>
+          <footer style={{ padding: '1rem', borderTop: '1px solid #eee', textAlign: 'center', marginTop: 'auto', backgroundColor: '#f8f9fa' }}>
+            <p style={{ margin: 0, fontSize: '0.9rem' }}>&copy; {new Date().getFullYear()} Kemotown. All rights reserved.</p>
+          </footer>
+        </SessionProviderWrapper>
       </body>
     </html>
   );
