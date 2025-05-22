@@ -74,7 +74,7 @@ model VerificationToken {
 }
 
 model Event {
-  id                String    @id @default(cuid())
+  id                String    @id // No default, will be set manually
   title             String
   coverImageUrl     String?
   description       String

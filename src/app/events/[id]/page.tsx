@@ -76,6 +76,29 @@ const EventDetailPage: React.FC = () => {
     fetchEvent();
   }, [fetchEvent]);
 
+  const renderMarkdown = (text: string) => {
+    // Simple markdown parsing for preview
+    return text.split('\n').map((line, index) => {
+      if (line.startsWith('# ')) {
+        return <h1 key={index} className="text-2xl font-bold mb-2">{line.substring(2)}</h1>;
+      } else if (line.startsWith('## ')) {
+        return <h2 key={index} className="text-xl font-bold mb-2">{line.substring(3)}</h2>;
+      } else if (line.startsWith('### ')) {
+        return <h3 key={index} className="text-lg font-bold mb-2">{line.substring(4)}</h3>;
+      } else if (line.startsWith('- ')) {
+        return <li key={index} className="ml-4 mb-1">• {line.substring(2)}</li>;
+      } else if (line.trim() === '') {
+        return <br key={index} />;
+      } else {
+        // Simple bold/italic parsing
+        const processedLine = line
+          .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+          .replace(/\*(.*?)\*/g, '<em>$1</em>');
+        return <p key={index} className="mb-2" dangerouslySetInnerHTML={{ __html: processedLine }} />;
+      }
+    });
+  };
+
   const handleRSVP = async (status: 'ATTENDING' | 'CONSIDERING' | 'NOT_ATTENDING') => {
     if (!session) {
       router.push('/login');
@@ -277,9 +300,7 @@ const EventDetailPage: React.FC = () => {
                 <div>
                   <h4 className="font-semibold text-gray-900 dark:text-white font-korean mb-2">설명</h4>
                   <div className="prose prose-sm max-w-none dark:prose-invert font-korean">
-                    {event.description.split('\n').map((line, index) => (
-                      <p key={index}>{line}</p>
-                    ))}
+                    {renderMarkdown(event.description)}
                   </div>
                 </div>
 
@@ -287,9 +308,7 @@ const EventDetailPage: React.FC = () => {
                   <div>
                     <h4 className="font-semibold text-gray-900 dark:text-white font-korean mb-2">이벤트 규칙</h4>
                     <div className="prose prose-sm max-w-none dark:prose-invert font-korean">
-                      {event.eventRules.split('\n').map((line, index) => (
-                        <p key={index}>{line}</p>
-                      ))}
+                      {renderMarkdown(event.eventRules)}
                     </div>
                   </div>
                 )}
