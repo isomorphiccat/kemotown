@@ -1,8 +1,12 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import Link from "next/link";
+import { getServerSession } from 'next-auth/next';
+import { authOptions } from '@/lib/auth';
 
-export default function Home() {
+export default async function Home() {
+  const session = await getServerSession(authOptions);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800">
       {/* Header */}
@@ -14,13 +18,29 @@ export default function Home() {
             </div>
             <h1 className="text-2xl font-bold text-primary font-korean">Kemotown</h1>
           </div>
-          <div className="flex space-x-4">
-            <Link href="/login">
-              <Button variant="ghost">로그인</Button>
-            </Link>
-            <Link href="/login">
-              <Button>회원가입</Button>
-            </Link>
+          <div className="flex space-x-4 items-center">
+            {session ? (
+              <>
+                <Link href="/users">
+                  <Button variant="ghost">사용자 둘러보기</Button>
+                </Link>
+                <Link href="/profile/me">
+                  <Button variant="ghost">내 프로필</Button>
+                </Link>
+                <Link href="/api/auth/signout">
+                  <Button variant="outline">로그아웃</Button>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link href="/login">
+                  <Button variant="ghost">로그인</Button>
+                </Link>
+                <Link href="/login">
+                  <Button>회원가입</Button>
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </header>
