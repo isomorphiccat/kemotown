@@ -36,8 +36,8 @@ interface EventDetail {
       profilePictureUrl?: string;
     };
   }>;
-  userRsvpStatus?: string | null;
   attendeesCount: number;
+  userRsvpStatus?: string | null;
 }
 
 const EventDetailPage: React.FC = () => {
@@ -85,8 +85,10 @@ const EventDetailPage: React.FC = () => {
         return <h2 key={index} className="text-xl font-bold mb-2">{line.substring(3)}</h2>;
       } else if (line.startsWith('### ')) {
         return <h3 key={index} className="text-lg font-bold mb-2">{line.substring(4)}</h3>;
-      } else if (line.startsWith('- ')) {
-        return <li key={index} className="ml-4 mb-1">• {line.substring(2)}</li>;
+      } else if (line.startsWith('> ')) {
+        return <blockquote key={index} className="border-l-4 border-gray-300 pl-4 italic text-gray-600 dark:text-gray-400 mb-2">{line.substring(2)}</blockquote>;
+      } else if (line.startsWith('- ') || line.startsWith('* ')) {
+        return <li key={index} className="ml-4 mb-1 list-disc">{line.substring(2)}</li>;
       } else if (line.trim() === '') {
         return <br key={index} />;
       } else {
@@ -207,6 +209,12 @@ const EventDetailPage: React.FC = () => {
 
   const isHost = session?.user && (session.user as { id?: string }).id === event.host.id;
   const isEventPast = new Date(event.startDate) < new Date();
+  
+  // Debug logging
+  console.log('Event data:', event);
+  console.log('Session:', session);
+  console.log('isHost:', isHost);
+  console.log('Event RSVPs:', event.rsvps);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800">
