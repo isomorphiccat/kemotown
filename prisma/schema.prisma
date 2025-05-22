@@ -1,58 +1,76 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-generator client {
-  provider = "prisma-client-js"
-}
-
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-model Account {
-  id                String  @id @default(cuid())
-  userId            String
-  type              String
-  provider          String
-  providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
-  expires_at        Int?
-  token_type        String?
-  scope             String?
-  id_token          String? @db.Text
-  session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([provider, providerAccountId])
-}
-
-model Session {
-  id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
-  expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+generator client {
+  provider = "prisma-client-js"
 }
 
 model User {
-  id            String    @id @default(cuid())
-  name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  accounts      Account[]
-  sessions      Session[]
-  // Add any other fields for your User model here
-  // e.g., furryName String?, bio String?, etc. as per PROPOSAL.md
+  id                String    @id @default(cuid())
+  username          String    @unique
+  email             String    @unique
+  password          String
+  furryName         String?
+  profilePictureUrl String?
+  fursuitGallery    Json?
+  characterDetails  Json?
+  socialMediaLinks  Json?
+  interestTags      String[]
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  hostedEvents      Event[]   @relation("HostedEvents")
+  rsvps             RSVP[]
 }
 
-model VerificationToken {
-  identifier String
-  token      String   @unique
-  expires    DateTime
+model Event {
+  id                String    @id @default(cuid())
+  title             String
+  coverImageUrl     String?
+  description       String
+  startDate         DateTime
+  endDate           DateTime
+  locationAddress   String?
+  naverMapUrl       String?
+  isLocationPublic  Boolean   @default(false)
+  cost              Float     @default(0)
+  attendeeCap       Int?
+  hostId            String
+  host              User      @relation("HostedEvents", fields: [hostId], references: [id])
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  eventRules        String?
+  tags              String[]
+  rsvps             RSVP[]
+}
 
-  @@unique([identifier, token])
+model RSVP {
+  id            String      @id @default(cuid())
+  userId        String
+  user          User        @relation(fields: [userId], references: [id])
+  eventId       String
+  event         Event       @relation(fields: [eventId], references: [id])
+  status        RSVPStatus
+  paymentStatus PaymentStatus
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([userId, eventId])
+}
+
+enum RSVPStatus {
+  ATTENDING
+  CONSIDERING
+  NOT_ATTENDING
+}
+
+enum PaymentStatus {
+  PENDING
+  PAID
+  FAILED
+  NOT_APPLICABLE
 }
