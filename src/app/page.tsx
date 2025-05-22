@@ -1,5 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -14,8 +15,12 @@ export default function Home() {
             <h1 className="text-2xl font-bold text-primary font-korean">Kemotown</h1>
           </div>
           <div className="flex space-x-4">
-            <Button variant="ghost">로그인</Button>
-            <Button>회원가입</Button>
+            <Link href="/login">
+              <Button variant="ghost">로그인</Button>
+            </Link>
+            <Link href="/login">
+              <Button>회원가입</Button>
+            </Link>
           </div>
         </div>
       </header>
