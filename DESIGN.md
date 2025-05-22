@@ -1,6 +1,6 @@
 # Kemotown — Next.js/React Architectural Blueprint
 
-Version 0.2 (updated for Next.js/React stack, May 21 2025)
+Version 0.3 (updated with Dashboard and Authentication, January 22 2025)
 
 ⸻
 
@@ -52,21 +52,32 @@ This document translates the Kemotown concept into a high‑level software archi
 
 ```
 src/
-├── app/                    # Next.js 13+ App Router
-│   ├── (auth)/            # Route groups
-│   ├── events/            # Event pages
-│   ├── profile/           # Profile pages
+├── app/                    # Next.js 15+ App Router
+│   ├── (auth)/            # Route groups for authentication
+│   │   └── login/         # Login page with OAuth buttons
+│   ├── profile/           # Profile management
+│   │   ├── [id]/         # View user profiles
+│   │   ├── create/       # Profile creation
+│   │   └── edit/[id]/    # Profile editing
+│   ├── users/             # User discovery and browsing
 │   ├── api/               # API routes
-│   └── globals.css        # Global styles
-├── components/            # Reusable React components
-│   ├── ui/               # Base UI components
-│   ├── forms/            # Form components
+│   │   ├── auth/         # NextAuth.js endpoints
+│   │   └── users/        # User management APIs
+│   ├── SessionProviderWrapper.tsx  # Session context provider
+│   └── globals.css        # Global styles with Korean font support
+├── components/            # React component library
+│   ├── dashboard/         # Dashboard-specific components
+│   │   └── Dashboard.tsx  # Main dashboard with timeline & events
+│   ├── ui/               # Base UI components (shadcn/ui)
+│   ├── forms/            # Form components with validation
+│   ├── auth/             # Authentication-related components
+│   ├── search/           # Search and discovery components
 │   └── layout/           # Layout components
 ├── lib/                  # Utility functions and configurations
-│   ├── db.ts            # Database client (Prisma)
-│   ├── auth.ts          # Authentication logic
-│   ├── payments.ts      # Toss Payments integration
-│   └── utils.ts         # General utilities
+│   ├── db.ts            # Prisma database client
+│   ├── auth.ts          # NextAuth.js configuration with OAuth
+│   ├── utils.ts         # General utilities
+│   └── validators/       # Zod validation schemas
 ├── types/               # TypeScript type definitions
 └── styles/              # Additional CSS/styling
 ```
@@ -77,27 +88,49 @@ src/
 
 | Layer | Technology | Purpose |
 |-------|------------|---------|
-| Framework | Next.js 14+ | Full‑stack React framework with App Router |
-| UI Library | React 18 | Component‑based UI with Server Components |
-| Styling | Tailwind CSS | Utility‑first CSS framework |
-| Database | PostgreSQL | Primary data store |
-| ORM | Prisma | Type‑safe database client |
-| Authentication | NextAuth.js | Authentication solution |
-| State Management | Zustand + SWR | Client state and server state |
-| Payments | Toss Payments API | Korean payment processing |
-| Deployment | Vercel | Hosting and deployment |
-| Language | TypeScript | Type safety throughout the stack |
+| Framework | Next.js 15.3+ | Full‑stack React framework with App Router |
+| UI Library | React 19 | Component‑based UI with Server Components |
+| Styling | Tailwind CSS 4 | Utility‑first CSS framework with Korean font support |
+| Database | PostgreSQL | Primary data store (Railway for production) |
+| ORM | Prisma 6.8+ | Type‑safe database client with auto-generation |
+| Authentication | NextAuth.js 4.24+ | OAuth authentication (Google, Kakao) |
+| State Management | React Hooks + SWR | Client state and server state management |
+| UI Components | shadcn/ui | Accessible component library |
+| Payments | Toss Payments API | Korean payment processing (planned) |
+| Deployment | Vercel | Hosting with automatic GitHub deployments |
+| Language | TypeScript 5+ | Strict type safety throughout the stack |
+| CI/CD | GitHub Actions | Automated testing, linting, and security checks |
 
 ⸻
 
-## 5. UX‑Critical Flows (MVP)
+## 5. User Experience & Navigation Flow
 
-| Flow | Implementation | Real‑time? |
-|------|----------------|------------|
-| Host creates event | Multi‑step form → POST /api/events → optimistic UI update | No |
-| User RSVP → Payment | "Attend" button → POST /api/rsvp → Toss virtual account → WebSocket for payment status | Yes (payment status) |
-| Bump | Camera/QR permission → POST /api/bump → success animation | No |
-| Moderation | Report modal → POST /api/reports → admin dashboard | No |
+### 5.1 Authentication Flow
+| Flow | Implementation | Status |
+|------|----------------|--------|
+| OAuth Login | Google/Kakao OAuth → NextAuth.js → automatic username generation | ✅ Implemented |
+| User Registration | OAuth signup → profile creation → dashboard redirect | ✅ Implemented |
+| Session Management | JWT sessions with middleware protection | ✅ Implemented |
+
+### 5.2 Dashboard Experience (Implemented)
+| Component | Description | Features |
+|-----------|-------------|----------|
+| **Welcome Section** | Personalized greeting with user's furry name | Korean localization, emoji support |
+| **My Events** | User's attending events (max 2 displayed) | RSVP status, quick event details |
+| **Community Timeline** | Global activity feed | Event creation, user joins, RSVP updates |
+| **Quick Profile** | Sidebar profile overview | Avatar, username, profile link |
+| **Upcoming Events** | Sidebar event list | Date/time, participant count |
+| **New Members** | Recently joined users | Interest tags, profile links |
+
+### 5.3 Core User Flows (MVP)
+| Flow | Implementation | Real‑time? | Status |
+|------|----------------|------------|--------|
+| User Login | OAuth → Dashboard redirect | No | ✅ Implemented |
+| Profile Creation | Form validation → API POST → profile view | No | ✅ Implemented |
+| User Discovery | Search/browse → profile view → interest matching | No | ✅ Implemented |
+| Host creates event | Multi‑step form → POST /api/events → optimistic UI update | No | 🔄 Planned |
+| User RSVP → Payment | "Attend" button → POST /api/rsvp → Toss virtual account | Yes (payment status) | 🔄 Planned |
+| Dashboard Timeline | Activity feed → real-time updates | Yes | 🔄 Mock data |
 
 ⸻
 
@@ -142,24 +175,34 @@ export interface EventSummary {
 
 ## 8. API Design
 
-### REST Endpoints
+### REST Endpoints (Implemented)
 
-| Endpoint | Method | Purpose |
-|----------|--------|---------|
-| `/api/events` | GET, POST | List and create events |
-| `/api/events/[id]` | GET, PUT, DELETE | Event CRUD operations |
-| `/api/events/[id]/rsvp` | POST | RSVP to event |
-| `/api/payments/webhook` | POST | Toss Payments webhook |
-| `/api/users/[id]` | GET, PUT | User profile operations |
-| `/api/reports` | POST | Content reporting |
+| Endpoint | Method | Purpose | Status |
+|----------|--------|---------|--------|
+| `/api/auth/[...nextauth]` | GET, POST | NextAuth.js OAuth endpoints | ✅ Implemented |
+| `/api/users` | GET, POST | List users with search/pagination, create user | ✅ Implemented |
+| `/api/users/[id]` | GET, PUT | User profile CRUD operations | ✅ Implemented |
 
-### WebSocket Events
+### Planned API Endpoints
 
-| Event | Purpose |
-|-------|---------|
-| `payment:confirmed` | Notify payment completion |
-| `event:updated` | Real‑time event updates |
-| `rsvp:changed` | RSVP status changes |
+| Endpoint | Method | Purpose | Priority |
+|----------|--------|---------|----------|
+| `/api/events` | GET, POST | List and create events | High |
+| `/api/events/[id]` | GET, PUT, DELETE | Event CRUD operations | High |
+| `/api/events/[id]/rsvp` | POST | RSVP to event | High |
+| `/api/dashboard/timeline` | GET | Community activity feed | Medium |
+| `/api/dashboard/stats` | GET | User dashboard statistics | Medium |
+| `/api/payments/webhook` | POST | Toss Payments webhook | Low |
+| `/api/reports` | POST | Content reporting | Low |
+
+### WebSocket Events (Planned)
+
+| Event | Purpose | Priority |
+|-------|---------|----------|
+| `timeline:update` | Real-time dashboard timeline updates | Medium |
+| `event:updated` | Real‑time event updates | High |
+| `rsvp:changed` | RSVP status changes | High |
+| `payment:confirmed` | Notify payment completion | Low |
 
 ⸻
 
@@ -206,14 +249,40 @@ export interface EventSummary {
 
 ⸻
 
-## 13. Deployment & DevOps
+## 13. Deployment & DevOps (Implemented)
 
-1. **Development**: `npm run dev` for local development with hot reload
-2. **Testing**: Automated tests on PR creation
-3. **Staging**: Preview deployments on Vercel for each PR
-4. **Production**: Automatic deployment to Vercel on main branch merge
-5. **Database**: PostgreSQL on Railway or Supabase
-6. **Monitoring**: Vercel Analytics + Sentry for error tracking
+### 13.1 CI/CD Pipeline (GitHub Actions)
+| Workflow | Triggers | Purpose | Status |
+|----------|----------|---------|--------|
+| **CI** | Push/PR to main, develop | ESLint, TypeScript, tests, build verification | ✅ Implemented |
+| **Security** | Push/PR to main + weekly | npm audit, CodeQL analysis, dependency checks | ✅ Implemented |
+| **Quality** | Push/PR to main, develop | Code formatting, bundle analysis, performance checks | ✅ Implemented |
+
+### 13.2 Environment Setup
+1. **Development**: `npm run dev` with Turbopack for fast reload
+2. **Build**: `prisma generate && next build` with environment validation
+3. **Testing**: Jest + React Testing Library with coverage reports
+4. **Linting**: ESLint with strict TypeScript rules
+5. **Type Checking**: Strict TypeScript compilation
+
+### 13.3 Production Deployment
+| Environment | Platform | Database | Domain | Status |
+|-------------|----------|----------|---------|--------|
+| **Production** | Vercel | Railway PostgreSQL | kemo.town | ✅ Configured |
+| **Preview** | Vercel PR Deploys | Railway (shared) | *.vercel.app | ✅ Automated |
+| **Development** | Local | Railway (shared) | localhost:3000 | ✅ Working |
+
+### 13.4 Environment Variables
+- `DATABASE_URL`: Railway PostgreSQL connection string
+- `NEXTAUTH_URL`: Production domain (kemo.town)
+- `NEXTAUTH_SECRET`: Secure random string for JWT signing
+- `GOOGLE_CLIENT_ID/SECRET`: OAuth provider credentials
+- `KAKAO_CLIENT_ID/SECRET`: Korean OAuth provider (planned)
+
+### 13.5 Monitoring & Analytics
+- **Vercel Analytics**: Performance and usage metrics
+- **GitHub Actions**: Build and test status monitoring
+- **Railway**: Database performance and connection monitoring
 
 ⸻
 
@@ -237,15 +306,43 @@ export interface EventSummary {
 
 ⸻
 
-## 16. Next Steps
+## 16. Implementation Status & Next Steps
 
-1. **Setup Project**: Initialize Next.js project with TypeScript and Tailwind
-2. **Database Design**: Create Prisma schema for core entities
-3. **Authentication**: Implement NextAuth.js with Korean OAuth providers
-4. **Design System**: Create base UI components with Tailwind
-5. **MVP Features**: Implement event creation and RSVP functionality
-6. **Payment Integration**: Set up Toss Payments API integration
-7. **Testing**: Establish testing framework and write initial tests
+### 16.1 Completed ✅
+1. **Project Setup**: Next.js 15+ with TypeScript, Tailwind CSS, and shadcn/ui
+2. **Database Design**: Prisma schema with User, Event, RSVP models + NextAuth tables
+3. **Authentication**: NextAuth.js with Google OAuth and automatic username generation
+4. **User Management**: Profile creation, editing, and user discovery with search
+5. **Dashboard**: Social media-style dashboard with timeline and event overview
+6. **CI/CD Pipeline**: Comprehensive GitHub Actions workflows for quality assurance
+7. **Deployment**: Vercel hosting with Railway PostgreSQL and automatic deployments
+
+### 16.2 In Progress 🔄
+1. **Real API Integration**: Replace dashboard mock data with actual API calls
+2. **Event System**: Core event creation, management, and RSVP functionality
+3. **Korean OAuth**: Kakao provider integration for local user adoption
+
+### 16.3 Next Priorities 🎯
+1. **Event Management** (High Priority)
+   - Event creation form with location and pricing
+   - Event listing and detail pages
+   - RSVP system with capacity management
+
+2. **Enhanced Dashboard** (Medium Priority)
+   - Real-time activity feed with WebSocket integration
+   - Event recommendations based on user interests
+   - Dashboard statistics and analytics
+
+3. **Payment Integration** (Lower Priority)
+   - Toss Payments API for paid events
+   - Virtual account generation and webhook handling
+   - Payment status tracking and notifications
+
+### 16.4 Future Enhancements 🚀
+- Real-time chat for events
+- Mobile PWA optimization
+- Push notifications for event updates
+- Advanced matching algorithms for user discovery
 
 ⸻
 
