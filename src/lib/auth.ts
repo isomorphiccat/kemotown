@@ -18,45 +18,32 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: 'jwt', // Use JWT for better middleware compatibility
+    strategy: 'database', // Use database sessions with Prisma adapter
   },
   callbacks: {
     async jwt({ token, user }) {
       // Add user info to JWT token when user first signs in
       if (user) {
+        console.log('JWT callback - user signin:', user);
         token.id = user.id;
         token.username = (user as { username?: string }).username;
         token.furryName = (user as { furryName?: string }).furryName;
         token.profilePictureUrl = (user as { profilePictureUrl?: string }).profilePictureUrl || user.image;
-      } else if (token.id) {
-        // On subsequent requests, refresh user data from database
-        try {
-          const dbUser = await prisma.user.findUnique({
-            where: { id: token.id as string },
-            select: { id: true, username: true, furryName: true, profilePictureUrl: true, email: true, name: true }
-          });
-          if (dbUser) {
-            token.username = dbUser.username;
-            token.furryName = dbUser.furryName;
-            token.profilePictureUrl = dbUser.profilePictureUrl;
-          } else {
-            // User not found in database, this shouldn't happen but handle gracefully
-            console.warn('User not found in database for token ID:', token.id);
-          }
-        } catch (error) {
-          console.error('Error refreshing user data in JWT callback:', error);
-        }
+        console.log('JWT callback - token after user signin:', token);
       }
       return token;
     },
-    async session({ session, token }) {
-      // Add user ID and custom properties to the session from JWT token
-      if (token && session.user) {
-        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).id = token.id as string;
-        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).username = token.username as string;
-        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).furryName = token.furryName as string;
-        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).profilePictureUrl = token.profilePictureUrl as string;
+    async session({ session, user }) {
+      // Add user properties to the session from database user
+      console.log('Session callback - user from DB:', user);
+      console.log('Session callback - session before:', session);
+      if (user && session.user) {
+        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).id = user.id;
+        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).username = (user as { username?: string }).username;
+        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).furryName = (user as { furryName?: string }).furryName;
+        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).profilePictureUrl = (user as { profilePictureUrl?: string }).profilePictureUrl;
       }
+      console.log('Session callback - session after:', session);
       return session;
     },
     async signIn({ user, account }) {
@@ -110,8 +97,8 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login', // Specify custom login page
     // newUser: '/profile/create', // Redirect new users to profile creation
   },
-  // Disable debug temporarily to reduce console noise
-  debug: false,
+  // Enable debug to identify authentication issues
+  debug: true,
 };
 
 export default NextAuth(authOptions);
