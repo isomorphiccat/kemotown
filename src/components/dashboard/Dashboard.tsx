@@ -53,114 +53,33 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
-        // Mock data for now - replace with actual API calls
-        await new Promise(resolve => setTimeout(resolve, 500)); // Simulate loading
-        
-        // Mock upcoming events
-        setUpcomingEvents([
-          {
-            id: '1',
-            title: '서울 퍼리 모임',
-            description: '홍대에서 만나는 퍼리들의 즐거운 시간',
-            startDate: '2025-01-25T19:00:00Z',
-            endDate: '2025-01-25T22:00:00Z',
-            location: '홍대 카페거리',
-            priceKrw: 15000,
-            hostId: 'host1',
-            hostUsername: 'seoul_furry',
-            hostFurryName: '서울늑대',
-            attendeeCount: 12,
-            attendeeCap: 20
-          },
-          {
-            id: '2',
-            title: 'Digital Art Workshop',
-            description: 'Learn digital art techniques for furry characters',
-            startDate: '2025-01-28T14:00:00Z',
-            endDate: '2025-01-28T18:00:00Z',
-            location: '온라인 (Discord)',
-            priceKrw: 0,
-            hostId: 'host2',
-            hostUsername: 'artist_fox',
-            hostFurryName: '아트폭스',
-            attendeeCount: 8,
-            attendeeCap: 15
-          }
+        // Fetch all dashboard data in parallel
+        const [timelineResponse, eventsResponse, usersResponse] = await Promise.all([
+          fetch('/api/dashboard?limit=10'),
+          fetch('/api/dashboard/events?upcoming_limit=10&user_limit=5'),
+          fetch('/api/dashboard/users?limit=5')
         ]);
 
-        // Mock user's attending events
-        setUserEvents([
-          {
-            id: '1',
-            title: '서울 퍼리 모임',
-            startDate: '2025-01-25T19:00:00Z',
-            endDate: '2025-01-25T22:00:00Z',
-            location: '홍대 카페거리',
-            hostId: 'host1',
-            hostUsername: 'seoul_furry',
-            userRsvpStatus: 'attending'
-          }
-        ]);
+        if (!timelineResponse.ok || !eventsResponse.ok || !usersResponse.ok) {
+          throw new Error('Failed to fetch dashboard data');
+        }
 
-        // Mock timeline
-        setTimeline([
-          {
-            id: '1',
-            type: 'event_created',
-            content: '새로운 이벤트가 생성되었습니다',
-            timestamp: '2025-01-22T10:30:00Z',
-            username: 'seoul_furry',
-            furryName: '서울늑대',
-            eventId: '1',
-            eventTitle: '서울 퍼리 모임'
-          },
-          {
-            id: '2',
-            type: 'user_joined',
-            content: '새로운 멤버가 가입했습니다',
-            timestamp: '2025-01-22T09:15:00Z',
-            username: 'new_member',
-            furryName: '새로운친구'
-          },
-          {
-            id: '3',
-            type: 'rsvp_update',
-            content: '이벤트에 참가 신청했습니다',
-            timestamp: '2025-01-22T08:45:00Z',
-            username: 'happy_wolf',
-            furryName: '행복늑대',
-            eventId: '2',
-            eventTitle: 'Digital Art Workshop'
-          }
-        ]);
+        const timelineData = await timelineResponse.json();
+        const eventsData = await eventsResponse.json();
+        const usersData = await usersResponse.json();
 
-        // Mock recent users
-        setRecentUsers([
-          {
-            id: '1',
-            username: 'art_enthusiast',
-            furryName: '예술사랑',
-            profilePictureUrl: undefined,
-            interestTags: ['art', 'digital', 'character-design']
-          },
-          {
-            id: '2',
-            username: 'gaming_fox',
-            furryName: '게임폭스',
-            profilePictureUrl: undefined,
-            interestTags: ['gaming', 'streaming', 'vr']
-          },
-          {
-            id: '3',
-            username: 'music_wolf',
-            furryName: '음악늑대',
-            profilePictureUrl: undefined,
-            interestTags: ['music', 'composition', 'live-performance']
-          }
-        ]);
+        setTimeline(timelineData.timeline || []);
+        setUpcomingEvents(eventsData.upcomingEvents || []);
+        setUserEvents(eventsData.userEvents || []);
+        setRecentUsers(usersData.recentUsers || []);
 
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
+        // Set empty arrays as fallback
+        setTimeline([]);
+        setUpcomingEvents([]);
+        setUserEvents([]);
+        setRecentUsers([]);
       } finally {
         setLoading(false);
       }

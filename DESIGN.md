@@ -1,6 +1,6 @@
 # Kemotown — Next.js/React Architectural Blueprint
 
-Version 0.3 (updated with Dashboard and Authentication, January 22 2025)
+Version 0.4 (updated with Event Management System, January 22 2025)
 
 ⸻
 
@@ -55,6 +55,11 @@ src/
 ├── app/                    # Next.js 15+ App Router
 │   ├── (auth)/            # Route groups for authentication
 │   │   └── login/         # Login page with OAuth buttons
+│   ├── events/            # Event management system
+│   │   ├── [id]/         # Event detail page with RSVP functionality
+│   │   ├── create/       # Markdown-based event creation with preview
+│   │   ├── edit/[id]/    # Event editing with host permissions
+│   │   └── page.tsx      # Event listing with search & pagination
 │   ├── profile/           # Profile management
 │   │   ├── [id]/         # View user profiles
 │   │   ├── create/       # Profile creation
@@ -62,6 +67,8 @@ src/
 │   ├── users/             # User discovery and browsing
 │   ├── api/               # API routes
 │   │   ├── auth/         # NextAuth.js endpoints
+│   │   ├── dashboard/    # Dashboard data endpoints
+│   │   ├── events/       # Event CRUD and RSVP endpoints
 │   │   └── users/        # User management APIs
 │   ├── SessionProviderWrapper.tsx  # Session context provider
 │   └── globals.css        # Global styles with Korean font support
@@ -117,20 +124,30 @@ src/
 |-----------|-------------|----------|
 | **Welcome Section** | Personalized greeting with user's furry name | Korean localization, emoji support |
 | **My Events** | User's attending events (max 2 displayed) | RSVP status, quick event details |
-| **Community Timeline** | Global activity feed | Event creation, user joins, RSVP updates |
+| **Community Timeline** | Global activity feed with real API data | Event creation, user joins, RSVP updates |
 | **Quick Profile** | Sidebar profile overview | Avatar, username, profile link |
-| **Upcoming Events** | Sidebar event list | Date/time, participant count |
-| **New Members** | Recently joined users | Interest tags, profile links |
+| **Upcoming Events** | Sidebar event list with live data | Date/time, participant count |
+| **New Members** | Recently joined users with real data | Interest tags, profile links |
 
-### 5.3 Core User Flows (MVP)
+### 5.3 Event Management System (Implemented)
+| Component | Description | Features |
+|-----------|-------------|----------|
+| **Event Discovery** | `/events` page with search and filtering | Search by title/description, upcoming filter, pagination |
+| **Event Details** | `/events/[id]` with full event information | Host details, location, pricing, attendee list |
+| **RSVP System** | Interactive attendance management | Attend/Consider/Not Attending with capacity limits |
+| **Event Listing** | Card-based responsive event grid | Korean price formatting, attendee counts |
+| **Host Controls** | Event management for creators | Edit/delete permissions, host identification |
+
+### 5.4 Core User Flows (MVP)
 | Flow | Implementation | Real‑time? | Status |
 |------|----------------|------------|--------|
 | User Login | OAuth → Dashboard redirect | No | ✅ Implemented |
 | Profile Creation | Form validation → API POST → profile view | No | ✅ Implemented |
 | User Discovery | Search/browse → profile view → interest matching | No | ✅ Implemented |
-| Host creates event | Multi‑step form → POST /api/events → optimistic UI update | No | 🔄 Planned |
-| User RSVP → Payment | "Attend" button → POST /api/rsvp → Toss virtual account | Yes (payment status) | 🔄 Planned |
-| Dashboard Timeline | Activity feed → real-time updates | Yes | 🔄 Mock data |
+| Event Discovery | Search/filter → event listing → event details | No | ✅ Implemented |
+| Event RSVP | RSVP buttons → POST /api/events/[id]/rsvp → status update | No | ✅ Implemented |
+| Host creates event | Multi‑step form → POST /api/events → event view | No | 🔄 Planned |
+| Dashboard Timeline | Activity feed with real API data | No | ✅ Implemented |
 
 ⸻
 
@@ -182,18 +199,21 @@ export interface EventSummary {
 | `/api/auth/[...nextauth]` | GET, POST | NextAuth.js OAuth endpoints | ✅ Implemented |
 | `/api/users` | GET, POST | List users with search/pagination, create user | ✅ Implemented |
 | `/api/users/[id]` | GET, PUT | User profile CRUD operations | ✅ Implemented |
+| `/api/dashboard` | GET | Community timeline data | ✅ Implemented |
+| `/api/dashboard/events` | GET | User's events and upcoming events | ✅ Implemented |
+| `/api/dashboard/users` | GET | Recent community members | ✅ Implemented |
+| `/api/events` | GET, POST | List and create events with search/pagination | ✅ Implemented |
+| `/api/events/[id]` | GET, PUT, DELETE | Event CRUD operations with RSVP status | ✅ Implemented |
+| `/api/events/[id]/rsvp` | POST, DELETE | RSVP management with capacity control | ✅ Implemented |
 
 ### Planned API Endpoints
 
 | Endpoint | Method | Purpose | Priority |
 |----------|--------|---------|----------|
-| `/api/events` | GET, POST | List and create events | High |
-| `/api/events/[id]` | GET, PUT, DELETE | Event CRUD operations | High |
-| `/api/events/[id]/rsvp` | POST | RSVP to event | High |
-| `/api/dashboard/timeline` | GET | Community activity feed | Medium |
 | `/api/dashboard/stats` | GET | User dashboard statistics | Medium |
 | `/api/payments/webhook` | POST | Toss Payments webhook | Low |
 | `/api/reports` | POST | Content reporting | Low |
+| `/api/events/[id]/comments` | GET, POST | Event comments/discussions | Medium |
 
 ### WebSocket Events (Planned)
 
@@ -313,20 +333,28 @@ export interface EventSummary {
 2. **Database Design**: Prisma schema with User, Event, RSVP models + NextAuth tables
 3. **Authentication**: NextAuth.js with Google OAuth and automatic username generation
 4. **User Management**: Profile creation, editing, and user discovery with search
-5. **Dashboard**: Social media-style dashboard with timeline and event overview
-6. **CI/CD Pipeline**: Comprehensive GitHub Actions workflows for quality assurance
-7. **Deployment**: Vercel hosting with Railway PostgreSQL and automatic deployments
+5. **Dashboard System**: Social media-style dashboard with real API data integration
+6. **Event Management System**: Complete event lifecycle with RSVP functionality
+   - Event discovery page with search, filtering, and pagination
+   - Event detail pages with full RSVP system (Attend/Consider/Not Attending)
+   - Markdown-based event creation with live preview functionality
+   - Event editing interface with host-only access control
+   - Event deletion with confirmation prompts
+   - Capacity management and attendee tracking
+   - Tag management system for event categorization
+7. **Real API Integration**: Dashboard timeline, events, and users with live data
+8. **CI/CD Pipeline**: Comprehensive GitHub Actions workflows for quality assurance
+9. **Deployment**: Vercel hosting with Railway PostgreSQL and automatic deployments
 
 ### 16.2 In Progress 🔄
-1. **Real API Integration**: Replace dashboard mock data with actual API calls
-2. **Event System**: Core event creation, management, and RSVP functionality
-3. **Korean OAuth**: Kakao provider integration for local user adoption
+1. **Korean OAuth**: Kakao provider integration for local user adoption
+2. **File Upload System**: Event cover images and profile pictures
 
 ### 16.3 Next Priorities 🎯
-1. **Event Management** (High Priority)
-   - Event creation form with location and pricing
-   - Event listing and detail pages
-   - RSVP system with capacity management
+1. **Enhanced Event Features** (High Priority)
+   - File upload for event cover images
+   - Event comments and discussions
+   - Event sharing and social features
 
 2. **Enhanced Dashboard** (Medium Priority)
    - Real-time activity feed with WebSocket integration
