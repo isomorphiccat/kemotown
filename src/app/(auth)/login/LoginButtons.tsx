@@ -25,15 +25,17 @@ const errorStyle = {
     backgroundColor: '#ffebeb'
 }
 
-// Simplified error mapping
+// Enhanced error mapping with mobile-specific messages
 const errorMessages: { [key: string]: string } = {
-  OAuthSignin: "Error trying to sign in with the OAuth provider.",
-  OAuthCallback: "Error during the OAuth callback.",
-  OAuthCreateAccount: "Error creating user account with OAuth provider.",
+  OAuthSignin: "Error connecting to Google/Kakao. Please try again.",
+  OAuthCallback: "Login was interrupted. Please try signing in again.",
+  OAuthCreateAccount: "Unable to create your account. Please try again or contact support.",
   EmailCreateAccount: "Error creating user account with email provider.",
-  Callback: "Error in the callback handler.",
+  Callback: "Login callback failed. Please try again.",
   OAuthAccountNotLinked: "This account is already linked with another provider. Try signing in with the original provider.",
-  Default: "An unknown error occurred during authentication."
+  AccessDenied: "Access was denied. Please try again.",
+  Configuration: "Login service is temporarily unavailable. Please try again later.",
+  Default: "Login failed. Please try again or contact support if the problem persists."
 };
 
 export default function LoginButtons() {
@@ -41,19 +43,38 @@ export default function LoginButtons() {
   const error = searchParams.get('error');
   const errorMessage = error && (errorMessages[error] || errorMessages.Default);
 
+  const handleGoogleSignIn = () => {
+    signIn('google', { 
+      callbackUrl: '/',
+      redirect: true
+    });
+  };
+
+  const handleKakaoSignIn = () => {
+    signIn('kakao', { 
+      callbackUrl: '/',
+      redirect: true
+    });
+  };
+
   return (
     <>
       {errorMessage && (
         <div style={errorStyle}>
           <p>Login Error:</p>
           <p>{errorMessage}</p>
+          {error && (
+            <p style={{ fontSize: '12px', color: '#666', marginTop: '5px' }}>
+              Error code: {error}
+            </p>
+          )}
         </div>
       )}
-      <button onClick={() => signIn('google', { callbackUrl: '/' })} style={{ ...buttonStyle, backgroundColor: '#4285F4', color: 'white' }}>
+      <button onClick={handleGoogleSignIn} style={{ ...buttonStyle, backgroundColor: '#4285F4', color: 'white' }}>
         {/* Optional: Add Google Icon SVG here */}
         Sign in with Google
       </button>
-      <button onClick={() => signIn('kakao', { callbackUrl: '/' })} style={{ ...buttonStyle, backgroundColor: '#FEE500', color: '#3C1E1E' }}>
+      <button onClick={handleKakaoSignIn} style={{ ...buttonStyle, backgroundColor: '#FEE500', color: '#3C1E1E' }}>
         {/* Optional: Add Kakao Icon SVG here */}
         Sign in with Kakao
       </button>
