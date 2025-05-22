@@ -209,12 +209,6 @@ const EventDetailPage: React.FC = () => {
 
   const isHost = session?.user && (session.user as { id?: string }).id === event.host.id;
   const isEventPast = new Date(event.startDate) < new Date();
-  
-  // Debug logging
-  console.log('Event data:', event);
-  console.log('Session:', session);
-  console.log('isHost:', isHost);
-  console.log('Event RSVPs:', event.rsvps);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800">
@@ -342,7 +336,7 @@ const EventDetailPage: React.FC = () => {
 
           {/* Sidebar */}
           <div className="space-y-6">
-            {/* RSVP Section */}
+            {/* RSVP Section for Non-Hosts */}
             {!isHost && (
               <Card>
                 <CardHeader>
@@ -416,34 +410,120 @@ const EventDetailPage: React.FC = () => {
               </Card>
             )}
 
+            {/* Host Management Section */}
+            {isHost && (
+              <Card>
+                <CardHeader>
+                  <CardTitle className="font-korean">이벤트 관리</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="text-center p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
+                      <p className="text-sm text-blue-700 dark:text-blue-300 font-korean mb-2">
+                        👑 이벤트 주최자
+                      </p>
+                      <p className="text-xs text-blue-600 dark:text-blue-400 font-korean">
+                        참가자들이 RSVP를 보내면 아래 목록에서 확인할 수 있습니다
+                      </p>
+                    </div>
+                    
+                    <div className="grid grid-cols-3 gap-2 text-center">
+                      <div className="p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                        <div className="text-lg font-bold text-green-700 dark:text-green-300">
+                          {event.rsvps.filter(rsvp => rsvp.status === 'ATTENDING').length}
+                        </div>
+                        <div className="text-xs text-green-600 dark:text-green-400 font-korean">참가</div>
+                      </div>
+                      <div className="p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
+                        <div className="text-lg font-bold text-yellow-700 dark:text-yellow-300">
+                          {event.rsvps.filter(rsvp => rsvp.status === 'CONSIDERING').length}
+                        </div>
+                        <div className="text-xs text-yellow-600 dark:text-yellow-400 font-korean">고려중</div>
+                      </div>
+                      <div className="p-2 bg-red-50 dark:bg-red-900/20 rounded">
+                        <div className="text-lg font-bold text-red-700 dark:text-red-300">
+                          {event.rsvps.filter(rsvp => rsvp.status === 'NOT_ATTENDING').length}
+                        </div>
+                        <div className="text-xs text-red-600 dark:text-red-400 font-korean">불참</div>
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
             {/* Attendees List */}
             <Card>
               <CardHeader>
-                <CardTitle className="font-korean">참가자 목록</CardTitle>
+                <CardTitle className="font-korean">
+                  참가자 목록 ({event.rsvps.filter(rsvp => rsvp.status === 'ATTENDING').length}명)
+                </CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="space-y-3">
-                  {event.rsvps
-                    .filter(rsvp => rsvp.status === 'ATTENDING')
-                    .map((rsvp) => (
-                      <div key={rsvp.id} className="flex items-center space-x-3">
-                        <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
-                          <span className="text-primary text-sm font-bold">
-                            {(rsvp.user.furryName || rsvp.user.username || '?').charAt(0).toUpperCase()}
-                          </span>
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-semibold text-gray-900 dark:text-white font-korean truncate">
-                            {rsvp.user.furryName || rsvp.user.username}
-                          </p>
-                        </div>
+                <div className="space-y-4">
+                  {/* Attending */}
+                  {event.rsvps.filter(rsvp => rsvp.status === 'ATTENDING').length > 0 && (
+                    <div>
+                      <h5 className="text-sm font-semibold text-green-700 dark:text-green-300 mb-2 font-korean">✓ 참가 확정</h5>
+                      <div className="space-y-2">
+                        {event.rsvps
+                          .filter(rsvp => rsvp.status === 'ATTENDING')
+                          .map((rsvp) => (
+                            <div key={rsvp.id} className="flex items-center space-x-3 p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                              <div className="w-8 h-8 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center">
+                                <span className="text-green-700 dark:text-green-300 text-sm font-bold">
+                                  {(rsvp.user.furryName || rsvp.user.username || '?').charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white font-korean truncate">
+                                  {rsvp.user.furryName || rsvp.user.username}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
                       </div>
-                    ))}
+                    </div>
+                  )}
+
+                  {/* Considering */}
+                  {event.rsvps.filter(rsvp => rsvp.status === 'CONSIDERING').length > 0 && (
+                    <div>
+                      <h5 className="text-sm font-semibold text-yellow-700 dark:text-yellow-300 mb-2 font-korean">🤔 참가 고려중</h5>
+                      <div className="space-y-2">
+                        {event.rsvps
+                          .filter(rsvp => rsvp.status === 'CONSIDERING')
+                          .map((rsvp) => (
+                            <div key={rsvp.id} className="flex items-center space-x-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
+                              <div className="w-8 h-8 bg-yellow-100 dark:bg-yellow-800 rounded-full flex items-center justify-center">
+                                <span className="text-yellow-700 dark:text-yellow-300 text-sm font-bold">
+                                  {(rsvp.user.furryName || rsvp.user.username || '?').charAt(0).toUpperCase()}
+                                </span>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-semibold text-gray-900 dark:text-white font-korean truncate">
+                                  {rsvp.user.furryName || rsvp.user.username}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                      </div>
+                    </div>
+                  )}
                   
-                  {event.rsvps.filter(rsvp => rsvp.status === 'ATTENDING').length === 0 && (
-                    <p className="text-gray-500 dark:text-gray-400 text-sm font-korean">
-                      아직 참가자가 없습니다
-                    </p>
+                  {/* Empty state */}
+                  {event.rsvps.filter(rsvp => rsvp.status === 'ATTENDING' || rsvp.status === 'CONSIDERING').length === 0 && (
+                    <div className="text-center py-6">
+                      <div className="text-4xl mb-2">👥</div>
+                      <p className="text-gray-500 dark:text-gray-400 text-sm font-korean">
+                        아직 참가자가 없습니다
+                      </p>
+                      {!isHost && (
+                        <p className="text-gray-400 dark:text-gray-500 text-xs font-korean mt-1">
+                          첫 번째 참가자가 되어보세요!
+                        </p>
+                      )}
+                    </div>
                   )}
                 </div>
               </CardContent>
