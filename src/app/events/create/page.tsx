@@ -28,6 +28,10 @@ const CreateEventPage: React.FC = () => {
   const [showPreview, setShowPreview] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
+  // Debug logging
+  console.log('Create event page - status:', status);
+  console.log('Create event page - session:', session);
+
   const [formData, setFormData] = useState<EventFormData>({
     title: '',
     description: '',
