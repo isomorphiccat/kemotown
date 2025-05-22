@@ -8,6 +8,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 
 interface EventFormData {
+  customId: string;
   title: string;
   description: string;
   startDate: string;
@@ -29,6 +30,7 @@ const CreateEventPage: React.FC = () => {
   const [errors, setErrors] = useState<Record<string, string[]>>({});
 
   const [formData, setFormData] = useState<EventFormData>({
+    customId: '',
     title: '',
     description: '',
     startDate: '',
@@ -74,8 +76,10 @@ const CreateEventPage: React.FC = () => {
     }
   };
 
+  const [isComposing, setIsComposing] = useState(false);
+
   const handleAddTag = (e: React.KeyboardEvent) => {
-    if (e.key === 'Enter' && tagInput.trim()) {
+    if (e.key === 'Enter' && !isComposing && tagInput.trim()) {
       e.preventDefault();
       const newTag = tagInput.trim().toLowerCase();
       if (!formData.tags.includes(newTag)) {
@@ -86,6 +90,14 @@ const CreateEventPage: React.FC = () => {
       }
       setTagInput('');
     }
+  };
+
+  const handleCompositionStart = () => {
+    setIsComposing(true);
+  };
+
+  const handleCompositionEnd = () => {
+    setIsComposing(false);
   };
 
   const handleRemoveTag = (tagToRemove: string) => {
@@ -330,6 +342,30 @@ const CreateEventPage: React.FC = () => {
                     )}
                   </div>
 
+                  <div>
+                    <label htmlFor="customId" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-korean">
+                      사용자 정의 URL (선택사항)
+                    </label>
+                    <div className="flex items-center">
+                      <span className="text-sm text-gray-500 mr-2 font-korean">kemotown.com/events/</span>
+                      <input
+                        type="text"
+                        id="customId"
+                        name="customId"
+                        value={formData.customId}
+                        onChange={handleInputChange}
+                        placeholder="예: seoul-meetup-2025"
+                        className="flex-1 px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-white font-korean"
+                      />
+                    </div>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-korean">
+                      비워두면 자동으로 읽기 쉬운 ID가 생성됩니다 (예: happy-blue-fox)
+                    </p>
+                    {errors.customId && (
+                      <p className="text-red-600 text-sm mt-1 font-korean">{errors.customId[0]}</p>
+                    )}
+                  </div>
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-korean">
@@ -531,6 +567,8 @@ const CreateEventPage: React.FC = () => {
                       value={tagInput}
                       onChange={(e) => setTagInput(e.target.value)}
                       onKeyDown={handleAddTag}
+                      onCompositionStart={handleCompositionStart}
+                      onCompositionEnd={handleCompositionEnd}
                       placeholder="태그를 입력하고 Enter를 누르세요 (예: 모임, 게임, 음식)"
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-md focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent dark:bg-gray-800 dark:text-white font-korean"
                     />

@@ -3,8 +3,10 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db';
 import { z } from 'zod';
+import { uniqueNamesGenerator, adjectives, animals, colors, Config } from 'unique-names-generator';
 
 const EventCreateSchema = z.object({
+  customId: z.string().regex(/^[a-z0-9\-]+$/, '사용자 정의 ID는 소문자, 숫자, 하이픈만 사용할 수 있습니다').min(3, '최소 3자 이상이어야 합니다').max(50, '최대 50자까지 가능합니다').optional(),
   title: z.string().min(1, '제목은 필수입니다').max(100, '제목이 너무 깁니다'),
   description: z.string().min(10, '설명은 최소 10자 이상이어야 합니다'),
   startDate: z.string().refine((date) => !isNaN(Date.parse(date)), '올바른 시작 날짜를 입력하세요'),
@@ -17,6 +19,41 @@ const EventCreateSchema = z.object({
   eventRules: z.string().optional(),
   tags: z.array(z.string()).default([]),
 });
+
+// Function to generate human-readable event ID
+async function generateEventId(customId?: string): Promise<string> {
+  if (customId) {
+    // Check if custom ID is available
+    const existingEvent = await prisma.event.findUnique({
+      where: { id: customId }
+    });
+    if (existingEvent) {
+      throw new Error('이미 사용 중인 ID입니다');
+    }
+    return customId;
+  }
+
+  // Generate readable ID using unique-names-generator
+  const customConfig: Config = {
+    dictionaries: [adjectives, colors, animals],
+    separator: '-',
+    length: 3,
+  };
+  
+  let eventId: string;
+  let attempts = 0;
+  do {
+    eventId = uniqueNamesGenerator(customConfig);
+    attempts++;
+    // Fallback to timestamp if too many attempts
+    if (attempts > 10) {
+      eventId = `event-${Date.now()}`;
+      break;
+    }
+  } while (await prisma.event.findUnique({ where: { id: eventId } }));
+  
+  return eventId;
+}
 
 // GET /api/events - List events with pagination and filtering
 export async function GET(request: NextRequest) {
@@ -129,8 +166,12 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Generate event ID
+    const eventId = await generateEventId(data.customId);
+
     const newEvent = await prisma.event.create({
       data: {
+        id: eventId,
         title: data.title,
         description: data.description,
         startDate: startDate,
