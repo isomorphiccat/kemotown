@@ -129,6 +129,12 @@ const Dashboard: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-4">
+              <Link href="/events/create">
+                <Button className="font-korean">이벤트 만들기</Button>
+              </Link>
+              <Link href="/events">
+                <Button variant="ghost" className="font-korean">이벤트 보기</Button>
+              </Link>
               <Link href="/users">
                 <Button variant="ghost" className="font-korean">멤버 둘러보기</Button>
               </Link>
@@ -189,9 +195,14 @@ const Dashboard: React.FC = () => {
                 ) : (
                   <div className="text-center py-6">
                     <p className="text-gray-500 dark:text-gray-400 mb-4 font-korean">참가 예정인 이벤트가 없습니다</p>
-                    <Link href="/events">
-                      <Button className="font-korean">이벤트 둘러보기</Button>
-                    </Link>
+                    <div className="flex flex-col sm:flex-row gap-2 justify-center">
+                      <Link href="/events">
+                        <Button variant="outline" className="font-korean">이벤트 둘러보기</Button>
+                      </Link>
+                      <Link href="/events/create">
+                        <Button className="font-korean">이벤트 만들기</Button>
+                      </Link>
+                    </div>
                   </div>
                 )}
               </CardContent>

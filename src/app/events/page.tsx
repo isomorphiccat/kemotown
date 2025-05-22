@@ -34,13 +34,14 @@ interface EventsResponse {
 }
 
 const EventsPage: React.FC = () => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(1);
   const [searchQuery, setSearchQuery] = useState('');
   const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
+
 
   const fetchEvents = async (page = 1, search = '', upcoming = true) => {
     try {
@@ -121,7 +122,7 @@ const EventsPage: React.FC = () => {
             </div>
             
             <div className="flex items-center space-x-4">
-              {session ? (
+              {status === 'authenticated' && session ? (
                 <>
                   <Link href="/events/create">
                     <Button className="font-korean">이벤트 만들기</Button>
@@ -130,10 +131,12 @@ const EventsPage: React.FC = () => {
                     <Button variant="ghost" className="font-korean">대시보드</Button>
                   </Link>
                 </>
-              ) : (
+              ) : status === 'unauthenticated' ? (
                 <Link href="/login">
                   <Button className="font-korean">로그인</Button>
                 </Link>
+              ) : (
+                <div className="text-sm text-gray-500 font-korean">로딩 중...</div>
               )}
             </div>
           </div>
