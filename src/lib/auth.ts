@@ -28,6 +28,21 @@ export const authOptions: NextAuthOptions = {
         token.username = (user as { username?: string }).username;
         token.furryName = (user as { furryName?: string }).furryName;
         token.profilePictureUrl = (user as { profilePictureUrl?: string }).profilePictureUrl || user.image;
+      } else if (token.id) {
+        // On subsequent requests, refresh user data from database
+        try {
+          const dbUser = await prisma.user.findUnique({
+            where: { id: token.id as string },
+            select: { id: true, username: true, furryName: true, profilePictureUrl: true, email: true, name: true }
+          });
+          if (dbUser) {
+            token.username = dbUser.username;
+            token.furryName = dbUser.furryName;
+            token.profilePictureUrl = dbUser.profilePictureUrl;
+          }
+        } catch (error) {
+          console.error('Error refreshing user data in JWT callback:', error);
+        }
       }
       return token;
     },

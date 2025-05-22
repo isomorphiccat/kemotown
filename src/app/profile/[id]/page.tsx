@@ -46,11 +46,12 @@ const UserProfilePage: React.FC = () => {
         }
         
         const currentUserId = (session.user as { id?: string })?.id;
+        
         if (currentUserId) {
           router.replace(`/profile/${currentUserId}`);
           return;
         } else {
-          setError("프로필을 불러올 수 없습니다. 다시 로그인해 주세요.");
+          setError("프로필을 불러올 수 없습니다. 사용자 ID를 찾을 수 없습니다. 다시 로그인해 주세요.");
           setIsLoading(false);
           return;
         }
