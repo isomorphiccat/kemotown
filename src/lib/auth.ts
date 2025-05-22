@@ -39,6 +39,9 @@ export const authOptions: NextAuthOptions = {
             token.username = dbUser.username;
             token.furryName = dbUser.furryName;
             token.profilePictureUrl = dbUser.profilePictureUrl;
+          } else {
+            // User not found in database, this shouldn't happen but handle gracefully
+            console.warn('User not found in database for token ID:', token.id);
           }
         } catch (error) {
           console.error('Error refreshing user data in JWT callback:', error);
