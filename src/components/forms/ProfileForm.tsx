@@ -1,8 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation'; // For navigation
-import { UserCreateData, UserUpdateData } from '@/lib/validators/user'; // Assuming Zod types are exported
+import { useRouter } from 'next/navigation';
+import Link from 'next/link';
+import { UserCreateData, UserUpdateData } from '@/lib/validators/user';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 
 interface ProfileFormProps {
   mode: 'create' | 'edit';
@@ -19,15 +22,17 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
       password: '',
       furryName: '',
       profilePictureUrl: '',
-      fursuitGallery: '', // Simple text input for now
-      characterDetails: '', // Simple text input for now
-      socialMediaLinks: '', // Simple text input for now
-      interestTags: [], // Array of strings
+      fursuitGallery: '',
+      characterDetails: '',
+      socialMediaLinks: '',
+      interestTags: [],
     }
   );
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [tagInput, setTagInput] = useState('');
+  const [isComposing, setIsComposing] = useState(false);
 
   useEffect(() => {
     if (mode === 'edit' && initialData) {
@@ -45,13 +50,38 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
+  const handleAddTag = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !isComposing && tagInput.trim()) {
+      e.preventDefault();
+      const newTag = tagInput.trim();
+      const currentTags = Array.isArray(formData.interestTags) ? formData.interestTags : [];
+      if (!currentTags.includes(newTag)) {
+        setFormData(prev => ({
+          ...prev,
+          interestTags: [...currentTags, newTag]
+        }));
+      }
+      setTagInput('');
+    }
+  };
+
+  const handleRemoveTag = (tagToRemove: string) => {
+    const currentTags = Array.isArray(formData.interestTags) ? formData.interestTags : [];
+    setFormData(prev => ({
+      ...prev,
+      interestTags: currentTags.filter(tag => tag !== tagToRemove)
+    }));
+  };
+
+  const handleCompositionStart = () => setIsComposing(true);
+  const handleCompositionEnd = () => setIsComposing(false);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
     setSuccessMessage(null);
 
-    // Prepare data, converting interestTags from string to array
     const dataToSubmit = {
       ...formData,
       interestTags: Array.isArray(formData.interestTags) 
@@ -59,19 +89,11 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
         : formData.interestTags 
           ? (formData.interestTags as string).split(',').map(tag => tag.trim()).filter(tag => tag) 
           : [],
-      // For JSON fields, ensure they are parsed if needed, or handle as strings if API expects that for simplicity
-      // For this implementation, we are sending them as strings and assuming the API can handle it or they are simple URLs.
-      // If they were complex JSON objects, we'd parse them:
-      // fursuitGallery: formData.fursuitGallery ? JSON.parse(formData.fursuitGallery as string) : undefined,
-      // characterDetails: formData.characterDetails ? JSON.parse(formData.characterDetails as string) : undefined,
-      // socialMediaLinks: formData.socialMediaLinks ? JSON.parse(formData.socialMediaLinks as string) : undefined,
     };
     
-    // Remove empty password string if not being changed
     if (mode === 'edit' && !dataToSubmit.password) {
       delete dataToSubmit.password;
     }
-
 
     try {
       const url = mode === 'create' ? '/api/users' : `/api/users/${userId}`;
@@ -86,13 +108,12 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
       const result = await response.json();
 
       if (!response.ok) {
-        const errorMsg = result.errors ? JSON.stringify(result.errors) : result.message || 'An error occurred.';
+        const errorMsg = result.errors ? JSON.stringify(result.errors) : result.message || '오류가 발생했습니다.';
         throw new Error(errorMsg);
       }
 
-      setSuccessMessage(mode === 'create' ? 'Profile created successfully!' : 'Profile updated successfully!');
+      setSuccessMessage(mode === 'create' ? '프로필이 성공적으로 생성되었습니다!' : '프로필이 성공적으로 업데이트되었습니다!');
       
-      // Redirect after a short delay
       setTimeout(() => {
         if (mode === 'create' && result.id) {
           router.push(`/profile/${result.id}`);
@@ -102,65 +123,270 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
       }, 1500);
 
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'An error occurred');
+      setError(err instanceof Error ? err.message : '오류가 발생했습니다');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const inputStyle = "mt-1 block w-full px-3 py-2 bg-white border border-slate-300 rounded-md text-sm shadow-sm placeholder-slate-400 focus:outline-none focus:border-sky-500 focus:ring-1 focus:ring-sky-500 disabled:bg-slate-50 disabled:text-slate-500 disabled:border-slate-200 disabled:shadow-none";
-  const labelStyle = "block text-sm font-medium text-slate-700";
-
   return (
-    <form onSubmit={handleSubmit} className="space-y-6 p-4 md:p-8 max-w-2xl mx-auto bg-white shadow-lg rounded-lg">
-      <h2 className="text-2xl font-semibold text-center text-gray-800">
-        {mode === 'create' ? 'Create Your Profile' : 'Edit Your Profile'}
-      </h2>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800 py-8">
+      <div className="container mx-auto px-4 max-w-4xl">
+        <div className="mb-8">
+          <Link href={mode === 'edit' ? `/profile/${userId}` : '/'} className="inline-flex items-center text-purple-600 hover:text-purple-800 transition-colors mb-4">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+            {mode === 'edit' ? '프로필로 돌아가기' : '홈으로 돌아가기'}
+          </Link>
+          <h1 className="text-3xl font-bold text-gray-900 dark:text-white font-korean">
+            {mode === 'create' ? '프로필 생성' : '프로필 수정'}
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 mt-2 font-korean">
+            {mode === 'create' ? '새로운 프로필을 만들어보세요' : '프로필 정보를 업데이트하세요'}
+          </p>
+        </div>
 
-      <div>
-        <label htmlFor="username" className={labelStyle}>Username</label>
-        <input type="text" name="username" id="username" value={formData.username} onChange={handleChange} className={inputStyle} required />
-      </div>
-      <div>
-        <label htmlFor="email" className={labelStyle}>Email</label>
-        <input type="email" name="email" id="email" value={formData.email} onChange={handleChange} className={inputStyle} required />
-      </div>
-      <div>
-        <label htmlFor="password" className={labelStyle}>{mode === 'create' ? 'Password' : 'New Password (leave blank to keep current)'}</label>
-        <input type="password" name="password" id="password" value={formData.password} onChange={handleChange} className={inputStyle} placeholder={mode === 'edit' ? 'Enter new password' : ''} />
-      </div>
-      <div>
-        <label htmlFor="furryName" className={labelStyle}>Furry Name</label>
-        <input type="text" name="furryName" id="furryName" value={formData.furryName} onChange={handleChange} className={inputStyle} />
-      </div>
-      <div>
-        <label htmlFor="profilePictureUrl" className={labelStyle}>Profile Picture URL</label>
-        <input type="url" name="profilePictureUrl" id="profilePictureUrl" value={formData.profilePictureUrl} onChange={handleChange} className={inputStyle} placeholder="https://example.com/image.png"/>
-      </div>
-      <div>
-        <label htmlFor="fursuitGallery" className={labelStyle}>Fursuit Gallery (URLs, comma-separated)</label>
-        <input type="text" name="fursuitGallery" id="fursuitGallery" value={formData.fursuitGallery as string} onChange={handleChange} className={inputStyle} placeholder="https://example.com/photo1.jpg, https://example.com/photo2.jpg"/>
-      </div>
-      <div>
-        <label htmlFor="characterDetails" className={labelStyle}>Character Details (e.g., species, bio - as text or JSON string)</label>
-        <textarea name="characterDetails" id="characterDetails" value={formData.characterDetails as string} onChange={handleChange} className={inputStyle + " h-24"} placeholder='{"species": "Fox", "bio": "Friendly and loves art."}' />
-      </div>
-      <div>
-        <label htmlFor="socialMediaLinks" className={labelStyle}>Social Media Links (e.g., Twitter, Telegram - as text or JSON string)</label>
-        <input type="text" name="socialMediaLinks" id="socialMediaLinks" value={formData.socialMediaLinks as string} onChange={handleChange} className={inputStyle} placeholder='{"twitter": "https://twitter.com/username", "telegram": "https://t.me/username"}'/>
-      </div>
-      <div>
-        <label htmlFor="interestTags" className={labelStyle}>Interest Tags (comma-separated)</label>
-        <input type="text" name="interestTags" id="interestTags" value={Array.isArray(formData.interestTags) ? formData.interestTags.join(', ') : formData.interestTags || ''} onChange={handleChange} className={inputStyle} placeholder="art, gaming, fursuiting" />
-      </div>
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="grid gap-6 md:grid-cols-2">
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="font-korean">기본 정보</CardTitle>
+                <CardDescription className="font-korean">
+                  기본적인 계정 정보를 입력해주세요
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-korean">
+                    사용자명 *
+                  </label>
+                  <input
+                    type="text"
+                    name="username"
+                    id="username"
+                    value={formData.username}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                    required
+                  />
+                </div>
+                {mode === 'create' && (
+                  <>
+                    <div>
+                      <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-korean">
+                        이메일 *
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        id="email"
+                        value={formData.email}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                        required
+                      />
+                    </div>
+                    <div>
+                      <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-korean">
+                        비밀번호 *
+                      </label>
+                      <input
+                        type="password"
+                        name="password"
+                        id="password"
+                        value={formData.password}
+                        onChange={handleChange}
+                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                        required
+                      />
+                    </div>
+                  </>
+                )}
+                {mode === 'edit' && (
+                  <div>
+                    <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-korean">
+                      새 비밀번호 (변경하지 않으려면 비워두세요)
+                    </label>
+                    <input
+                      type="password"
+                      name="password"
+                      id="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                      placeholder="새 비밀번호 입력"
+                    />
+                  </div>
+                )}
+              </CardContent>
+            </Card>
 
-      {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
-      {successMessage && <p className="text-sm text-green-600 bg-green-100 p-3 rounded-md">{successMessage}</p>}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-korean">퍼슨 정보</CardTitle>
+                <CardDescription className="font-korean">
+                  퍼리 캐릭터에 대한 정보를 입력해주세요
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label htmlFor="furryName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-korean">
+                    퍼리 이름
+                  </label>
+                  <input
+                    type="text"
+                    name="furryName"
+                    id="furryName"
+                    value={formData.furryName}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                    placeholder="캐릭터 이름"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="profilePictureUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-korean">
+                    프로필 사진 URL
+                  </label>
+                  <input
+                    type="url"
+                    name="profilePictureUrl"
+                    id="profilePictureUrl"
+                    value={formData.profilePictureUrl}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                    placeholder="https://example.com/image.png"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="characterDetails" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-korean">
+                    캐릭터 설명
+                  </label>
+                  <textarea
+                    name="characterDetails"
+                    id="characterDetails"
+                    value={formData.characterDetails as string}
+                    onChange={handleChange}
+                    rows={4}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors resize-none"
+                    placeholder="종족, 성격, 취미 등을 자유롭게 작성해주세요"
+                  />
+                </div>
+              </CardContent>
+            </Card>
 
-      <button type="submit" disabled={isLoading} className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-sky-500 disabled:bg-slate-400">
-        {isLoading ? 'Submitting...' : (mode === 'create' ? 'Create Profile' : 'Save Changes')}
-      </button>
-    </form>
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-korean">갤러리 & 소셜</CardTitle>
+                <CardDescription className="font-korean">
+                  퍼슈트 갤러리와 소셜 미디어 링크를 추가해주세요
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label htmlFor="fursuitGallery" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-korean">
+                    퍼슈트 갤러리 URL
+                  </label>
+                  <input
+                    type="text"
+                    name="fursuitGallery"
+                    id="fursuitGallery"
+                    value={formData.fursuitGallery as string}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                    placeholder="이미지 URL들을 쉼표로 구분해주세요"
+                  />
+                </div>
+                <div>
+                  <label htmlFor="socialMediaLinks" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2 font-korean">
+                    소셜 미디어 링크
+                  </label>
+                  <input
+                    type="text"
+                    name="socialMediaLinks"
+                    id="socialMediaLinks"
+                    value={formData.socialMediaLinks as string}
+                    onChange={handleChange}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                    placeholder="트위터, 텔레그램 등의 링크"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+
+            <Card className="md:col-span-2">
+              <CardHeader>
+                <CardTitle className="font-korean">관심사 태그</CardTitle>
+                <CardDescription className="font-korean">
+                  관심사나 취미를 태그로 추가해주세요. Enter 키를 눌러 태그를 추가할 수 있습니다.
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                <div className="space-y-3">
+                  <div className="flex flex-wrap gap-2 mb-3">
+                    {Array.isArray(formData.interestTags) && formData.interestTags.map((tag, index) => (
+                      <span
+                        key={index}
+                        className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800 dark:bg-purple-800 dark:text-purple-100"
+                      >
+                        {tag}
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveTag(tag)}
+                          className="ml-2 text-purple-500 hover:text-purple-700 dark:text-purple-300 dark:hover:text-purple-100"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                  <input
+                    type="text"
+                    value={tagInput}
+                    onChange={(e) => setTagInput(e.target.value)}
+                    onKeyDown={handleAddTag}
+                    onCompositionStart={handleCompositionStart}
+                    onCompositionEnd={handleCompositionEnd}
+                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent dark:bg-gray-700 dark:text-white transition-colors"
+                    placeholder="태그 입력 후 Enter (예: 아트, 게임, 퍼슈팅)"
+                  />
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {error && (
+            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+              <p className="text-sm text-red-600 font-korean">{error}</p>
+            </div>
+          )}
+          {successMessage && (
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+              <p className="text-sm text-green-600 font-korean">{successMessage}</p>
+            </div>
+          )}
+
+          <div className="flex justify-end space-x-4 pt-6">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => router.back()}
+              disabled={isLoading}
+              className="font-korean"
+            >
+              취소
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+              className="bg-purple-600 hover:bg-purple-700 text-white font-korean"
+            >
+              {isLoading ? '저장 중...' : (mode === 'create' ? '프로필 생성' : '변경사항 저장')}
+            </Button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 
