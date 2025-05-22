@@ -44,24 +44,30 @@ const EditProfilePage: React.FC = () => {
   }, [userId]);
 
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen"><p className="text-lg text-slate-700">Loading profile for editing...</p></div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800 flex justify-center items-center">
+        <p className="text-lg text-gray-700 dark:text-gray-300 font-korean">프로필 정보를 불러오는 중...</p>
+      </div>
+    );
   }
 
   if (error) {
-    return <div className="flex justify-center items-center min-h-screen"><p className="text-lg text-red-600">Error: {error}</p></div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800 flex justify-center items-center">
+        <p className="text-lg text-red-600 font-korean">오류: {error}</p>
+      </div>
+    );
   }
 
   if (!initialData) {
-    return <div className="flex justify-center items-center min-h-screen"><p className="text-lg text-slate-700">Could not load profile data.</p></div>;
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800 flex justify-center items-center">
+        <p className="text-lg text-gray-700 dark:text-gray-300 font-korean">프로필 데이터를 불러올 수 없습니다.</p>
+      </div>
+    );
   }
 
-  return (
-    <div className="min-h-screen bg-slate-100 py-8">
-      <div className="container mx-auto px-4">
-        <ProfileForm mode="edit" userId={userId} initialData={initialData} />
-      </div>
-    </div>
-  );
+  return <ProfileForm mode="edit" userId={userId} initialData={initialData} />;
 };
 
 export default EditProfilePage;
