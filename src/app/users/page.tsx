@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import UserSearch from '@/components/search/UserSearch'; // Assuming path is correct
 import { useRouter, useSearchParams } from 'next/navigation'; // For handling query params
 
@@ -139,9 +140,11 @@ const UsersDirectoryContent: React.FC = () => {
                   <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105 cursor-pointer border-none">
                     <div className="h-48 w-full bg-gray-100 flex items-center justify-center">
                       {user.profilePictureUrl ? (
-                        <img
+                        <Image
                           src={user.profilePictureUrl}
                           alt={user.furryName || user.username}
+                          width={192}
+                          height={192}
                           className="w-full h-full object-cover"
                         />
                       ) : (

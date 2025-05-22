@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
@@ -50,11 +50,7 @@ const EventDetailPage: React.FC = () => {
 
   const eventId = params.id as string;
 
-  useEffect(() => {
-    fetchEvent();
-  }, [eventId]);
-
-  const fetchEvent = async () => {
+  const fetchEvent = useCallback(async () => {
     try {
       setLoading(true);
       const response = await fetch(`/api/events/${eventId}`);
@@ -74,7 +70,11 @@ const EventDetailPage: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [eventId, router]);
+
+  useEffect(() => {
+    fetchEvent();
+  }, [fetchEvent]);
 
   const handleRSVP = async (status: 'ATTENDING' | 'CONSIDERING' | 'NOT_ATTENDING') => {
     if (!session) {
