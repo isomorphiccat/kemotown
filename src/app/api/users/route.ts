@@ -26,7 +26,6 @@ export async function GET(request: NextRequest) {
       select: {
         id: true,
         username: true,
-        email: true, // Consider if email should be public here
         furryName: true,
         profilePictureUrl: true,
         interestTags: true,
@@ -93,8 +92,8 @@ export async function POST(request: Request) {
     });
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = newUser;
-    return NextResponse.json(userWithoutPassword, { status: 201 });
+    const { password: _, email: __, ...userWithoutSensitiveData } = newUser;
+    return NextResponse.json(userWithoutSensitiveData, { status: 201 });
 
   } catch (error) {
     console.error('Error creating user:', error);

@@ -21,8 +21,8 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = user;
-    return NextResponse.json(userWithoutPassword, { status: 200 });
+    const { password: _, email: __, ...userWithoutSensitiveData } = user;
+    return NextResponse.json(userWithoutSensitiveData, { status: 200 });
 
   } catch (error) {
     console.error('Error fetching user:', error);
@@ -91,8 +91,8 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     });
 
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
-    const { password: _, ...userWithoutPassword } = updatedUser;
-    return NextResponse.json(userWithoutPassword, { status: 200 });
+    const { password: _, email: __, ...userWithoutSensitiveData } = updatedUser;
+    return NextResponse.json(userWithoutSensitiveData, { status: 200 });
 
   } catch (error) {
     console.error('Error updating user:', error);
