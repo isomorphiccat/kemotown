@@ -1,6 +1,8 @@
 // src/app/(auth)/login/LoginButtons.test.tsx
 import React from 'react';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { signIn } from 'next-auth/react';
+import { useSearchParams } from 'next/navigation';
 import LoginButtons from './LoginButtons';
 
 // Mock next-auth/react
@@ -15,15 +17,16 @@ jest.mock('next/navigation', () => ({
   })),
 }));
 
+const mockSignIn = signIn as jest.MockedFunction<typeof signIn>;
+const mockUseSearchParams = useSearchParams as jest.MockedFunction<typeof useSearchParams>;
+
 describe('LoginButtons', () => {
   beforeEach(() => {
     // Clear mock calls before each test
-    const { signIn } = require('next-auth/react');
-    const { useSearchParams } = require('next/navigation');
-    (signIn as jest.Mock).mockClear();
-    (useSearchParams as jest.Mock).mockClear();
+    mockSignIn.mockClear();
+    mockUseSearchParams.mockClear();
     // Reset useSearchParams to default mock implementation for each test
-    (useSearchParams as jest.Mock).mockImplementation(() => ({
+    mockUseSearchParams.mockImplementation(() => ({
         get: jest.fn(() => null),
     }));
   });
@@ -35,22 +38,19 @@ describe('LoginButtons', () => {
   });
 
   it('calls signIn with "google" when Google button is clicked', () => {
-    const { signIn } = require('next-auth/react');
     render(<LoginButtons />);
     fireEvent.click(screen.getByText('Sign in with Google'));
-    expect(signIn).toHaveBeenCalledWith('google', { callbackUrl: '/' });
+    expect(mockSignIn).toHaveBeenCalledWith('google', { callbackUrl: '/' });
   });
 
   it('calls signIn with "kakao" when Kakao button is clicked', () => {
-    const { signIn } = require('next-auth/react');
     render(<LoginButtons />);
     fireEvent.click(screen.getByText('Sign in with Kakao'));
-    expect(signIn).toHaveBeenCalledWith('kakao', { callbackUrl: '/' });
+    expect(mockSignIn).toHaveBeenCalledWith('kakao', { callbackUrl: '/' });
   });
 
   it('displays an error message if error query param is present', () => {
-    const { useSearchParams } = require('next/navigation');
-    (useSearchParams as jest.Mock).mockReturnValueOnce({
+    mockUseSearchParams.mockReturnValueOnce({
       get: jest.fn((param: string) => param === 'error' ? 'OAuthAccountNotLinked' : null),
     });
     render(<LoginButtons />);

@@ -1,4 +1,3 @@
-import { signIn } from 'next-auth/react'; // This client component hook will be used in a client component
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import { redirect } from 'next/navigation';

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import UserSearch from '@/components/search/UserSearch'; // Assuming path is correct
 import { useRouter, useSearchParams } from 'next/navigation'; // For handling query params
@@ -20,7 +20,7 @@ interface FetchUsersResponse {
   totalUsers: number;
 }
 
-const UsersDirectoryPage: React.FC = () => {
+const UsersDirectoryContent: React.FC = () => {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -53,8 +53,8 @@ const UsersDirectoryPage: React.FC = () => {
       setUsers(data.users);
       setCurrentPage(data.currentPage);
       setTotalPages(data.totalPages);
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch users');
       setUsers([]); // Clear users on error
     } finally {
       setIsLoading(false);
@@ -198,6 +198,14 @@ const UsersDirectoryPage: React.FC = () => {
         )}
       </div>
     </div>
+  );
+};
+
+const UsersDirectoryPage: React.FC = () => {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 flex items-center justify-center"><p className="text-gray-700 font-korean">사용자를 불러오는 중...</p></div>}>
+      <UsersDirectoryContent />
+    </Suspense>
   );
 };
 

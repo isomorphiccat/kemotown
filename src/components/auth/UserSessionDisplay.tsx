@@ -20,7 +20,7 @@ const sessionInfoStyle = {
     borderRadius: '5px',
     backgroundColor: '#f9f9f9',
     display: 'flex',
-    flexDirection: 'column' as 'column', // Explicitly type flexDirection
+    flexDirection: 'column' as const, // Explicitly type flexDirection
     alignItems: 'center',
     gap: '10px'
 }
@@ -35,7 +35,7 @@ export default function UserSessionDisplay() {
   if (session) {
     return (
       <div style={sessionInfoStyle}>
-        <p>Signed in as: <strong>{session.user?.name || session.user?.email || (session.user as any)?.id}</strong></p>
+        <p>Signed in as: <strong>{session.user?.name || session.user?.email || (session.user as { id?: string })?.id}</strong></p>
         {session.user?.email && <p><small>({session.user.email})</small></p>}
         <button
           onClick={() => signOut({ callbackUrl: '/' })} // Redirect to home after sign out

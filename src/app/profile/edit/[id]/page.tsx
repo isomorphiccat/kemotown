@@ -27,10 +27,11 @@ const EditProfilePage: React.FC = () => {
           const data = await response.json();
           // The form expects password to be empty unless changing,
           // and other fields should match UserUpdateData structure.
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { password, ...formData } = data; 
           setInitialData(formData);
-        } catch (err: any) {
-          setError(err.message);
+        } catch (err: unknown) {
+          setError(err instanceof Error ? err.message : 'An error occurred');
         } finally {
           setIsLoading(false);
         }
