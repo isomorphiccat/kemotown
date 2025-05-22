@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation'; // For accessing route params and navigation
 import { useSession } from 'next-auth/react';
 import Link from 'next/link';
+import Image from 'next/image';
 
 interface UserProfile {
   id: string;
@@ -152,9 +153,11 @@ const UserProfilePage: React.FC = () => {
         <div className="max-w-2xl mx-auto bg-white shadow-lg hover:shadow-xl transition-shadow rounded-lg p-6 md:p-8">
           <div className="flex flex-col items-center md:flex-row md:items-start">
             {user.profilePictureUrl && (
-              <img
+              <Image
                 src={user.profilePictureUrl}
                 alt={user.furryName || user.username}
+                width={192}
+                height={192}
                 className="w-32 h-32 md:w-48 md:h-48 rounded-full object-cover shadow-md md:mr-8 mb-4 md:mb-0"
               />
             )}
