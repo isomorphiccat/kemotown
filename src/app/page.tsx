@@ -12,7 +12,7 @@ export default async function Home() {
   // If user is logged in, show dashboard instead of landing page
   if (session) {
     return (
-      <SessionProviderWrapper session={session}>
+      <SessionProviderWrapper>
         <Dashboard />
       </SessionProviderWrapper>
     );
