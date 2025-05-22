@@ -22,28 +22,23 @@ export const authOptions: NextAuthOptions = {
   },
   callbacks: {
     async jwt({ token, user }) {
-      // Add user info to JWT token when user first signs in
+      // JWT callback not used with database sessions, but kept for compatibility
       if (user) {
-        console.log('JWT callback - user signin:', user);
         token.id = user.id;
         token.username = (user as { username?: string }).username;
         token.furryName = (user as { furryName?: string }).furryName;
         token.profilePictureUrl = (user as { profilePictureUrl?: string }).profilePictureUrl || user.image;
-        console.log('JWT callback - token after user signin:', token);
       }
       return token;
     },
     async session({ session, user }) {
       // Add user properties to the session from database user
-      console.log('Session callback - user from DB:', user);
-      console.log('Session callback - session before:', session);
       if (user && session.user) {
         (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).id = user.id;
         (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).username = (user as { username?: string }).username;
         (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).furryName = (user as { furryName?: string }).furryName;
         (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).profilePictureUrl = (user as { profilePictureUrl?: string }).profilePictureUrl;
       }
-      console.log('Session callback - session after:', session);
       return session;
     },
     async signIn({ user, account }) {
@@ -97,8 +92,8 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login', // Specify custom login page
     // newUser: '/profile/create', // Redirect new users to profile creation
   },
-  // Enable debug to identify authentication issues
-  debug: true,
+  // Disable debug for production
+  debug: false,
 };
 
 export default NextAuth(authOptions);

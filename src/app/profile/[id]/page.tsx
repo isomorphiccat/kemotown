@@ -36,26 +36,19 @@ const UserProfilePage: React.FC = () => {
       
       // Handle "me" case - redirect to current user's profile
       if (userId === 'me') {
-        console.log('Profile page - handling /me route');
-        console.log('Profile page - status:', status);
-        console.log('Profile page - session:', session);
-        
         if (status === 'loading') {
           setIsLoading(true);
           return; // Wait for session to load
         }
         
         if (status === 'unauthenticated' || !session?.user) {
-          console.log('Profile page - redirecting to login');
           router.push('/login');
           return;
         }
         
         const currentUserId = (session.user as { id?: string })?.id;
-        console.log('Profile page - currentUserId:', currentUserId);
         
         if (currentUserId) {
-          console.log('Profile page - redirecting to:', `/profile/${currentUserId}`);
           router.replace(`/profile/${currentUserId}`);
           return;
         } else {
