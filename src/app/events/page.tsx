@@ -42,10 +42,6 @@ const EventsPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [showUpcomingOnly, setShowUpcomingOnly] = useState(true);
 
-  // Debug logging
-  console.log('Events page - status:', status);
-  console.log('Events page - session:', session);
-
 
   const fetchEvents = async (page = 1, search = '', upcoming = true) => {
     try {
