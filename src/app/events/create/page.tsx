@@ -22,7 +22,7 @@ interface EventFormData {
 }
 
 const CreateEventPage: React.FC = () => {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
@@ -46,10 +46,10 @@ const CreateEventPage: React.FC = () => {
 
   // Redirect if not authenticated
   React.useEffect(() => {
-    if (!session) {
+    if (status === 'unauthenticated') {
       router.push('/login');
     }
-  }, [session, router]);
+  }, [status, router]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type } = e.target;
@@ -161,7 +161,15 @@ const CreateEventPage: React.FC = () => {
     });
   };
 
-  if (!session) {
+  if (status === 'loading') {
+    return (
+      <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
+        <p className="text-gray-700 dark:text-gray-300 font-korean">로딩 중...</p>
+      </div>
+    );
+  }
+
+  if (status === 'unauthenticated' || !session) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800 flex items-center justify-center">
         <p className="text-gray-700 dark:text-gray-300 font-korean">로그인이 필요합니다...</p>
