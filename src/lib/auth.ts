@@ -21,27 +21,27 @@ export const authOptions: NextAuthOptions = {
     strategy: 'jwt', // Use JWT for better middleware compatibility
   },
   callbacks: {
-    async jwt({ token, user, account }) {
+    async jwt({ token, user }) {
       // Add user info to JWT token when user first signs in
       if (user) {
         token.id = user.id;
-        token.username = user.username;
-        token.furryName = user.furryName;
-        token.profilePictureUrl = user.profilePictureUrl || user.image;
+        token.username = (user as { username?: string }).username;
+        token.furryName = (user as { furryName?: string }).furryName;
+        token.profilePictureUrl = (user as { profilePictureUrl?: string }).profilePictureUrl || user.image;
       }
       return token;
     },
     async session({ session, token }) {
       // Add user ID and custom properties to the session from JWT token
       if (token && session.user) {
-        (session.user as any).id = token.id;
-        (session.user as any).username = token.username;
-        (session.user as any).furryName = token.furryName;
-        (session.user as any).profilePictureUrl = token.profilePictureUrl;
+        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).id = token.id as string;
+        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).username = token.username as string;
+        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).furryName = token.furryName as string;
+        (session.user as { id?: string; username?: string; furryName?: string; profilePictureUrl?: string }).profilePictureUrl = token.profilePictureUrl as string;
       }
       return session;
     },
-    async signIn({ user, account, profile }) {
+    async signIn({ user, account }) {
       // Auto-create username for OAuth users if they don't have one
       if (account?.provider) {
         try {
@@ -79,7 +79,7 @@ export const authOptions: NextAuthOptions = {
             });
             
             // Update the user object with the new username for this session
-            user.username = finalUsername;
+            (user as { username?: string }).username = finalUsername;
           }
         } catch (error) {
           console.error('Error creating username for OAuth user:', error);

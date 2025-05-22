@@ -11,11 +11,14 @@ const mockSignOut = jest.fn();
 jest.mock('next-auth/react', () => ({
   ...jest.requireActual('next-auth/react'),
   useSession: () => mockUseSession(),
-  signOut: (...args: any[]) => mockSignOut(...args), // Pass arguments to the mock
+  signOut: (...args: unknown[]) => mockSignOut(...args), // Pass arguments to the mock
 }));
 
 // Mock next/link as per subtask
-jest.mock('next/link', () => ({ children, href }: { children: React.ReactNode, href: string }) => <a href={href}>{children}</a>);
+const MockLink = ({ children, href }: { children: React.ReactNode, href: string }) => <a href={href}>{children}</a>;
+MockLink.displayName = 'MockLink';
+
+jest.mock('next/link', () => MockLink);
 
 
 describe('UserSessionDisplay', () => {

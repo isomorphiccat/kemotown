@@ -11,9 +11,9 @@ interface UserProfile {
   email: string;
   furryName?: string;
   profilePictureUrl?: string;
-  fursuitGallery?: any; // Adjust based on actual structure, string for now
-  characterDetails?: any; // Adjust based on actual structure, string for now
-  socialMediaLinks?: any; // Adjust based on actual structure, string for now
+  fursuitGallery?: Record<string, unknown>; // Adjust based on actual structure, string for now
+  characterDetails?: Record<string, unknown>; // Adjust based on actual structure, string for now
+  socialMediaLinks?: Record<string, unknown>; // Adjust based on actual structure, string for now
   interestTags?: string[];
   createdAt: string;
 }
@@ -45,7 +45,7 @@ const UserProfilePage: React.FC = () => {
           return;
         }
         
-        const currentUserId = (session.user as any)?.id;
+        const currentUserId = (session.user as { id?: string })?.id;
         if (currentUserId) {
           router.replace(`/profile/${currentUserId}`);
           return;
@@ -71,8 +71,8 @@ const UserProfilePage: React.FC = () => {
         }
         const data = await response.json();
         setUser(data);
-      } catch (err: any) {
-        setError(err.message);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'An error occurred');
       } finally {
         setIsLoading(false);
       }
@@ -81,14 +81,14 @@ const UserProfilePage: React.FC = () => {
     fetchUserProfile();
   }, [userId, session, status, router]);
 
-  const renderJsonData = (data: any, title: string) => {
+  const renderJsonData = (data: Record<string, unknown> | string, title: string) => {
     if (!data) return null;
     let content;
     if (typeof data === 'string') {
       try {
         // Try parsing if it's a JSON string
         content = JSON.stringify(JSON.parse(data), null, 2);
-      } catch (e) {
+      } catch {
         // If not a valid JSON string, display as is (it might be a simple string or URL)
         content = data;
       }
@@ -168,9 +168,9 @@ const UserProfilePage: React.FC = () => {
           </div>
 
           <div className="mt-8 space-y-4">
-            {renderJsonData(user.characterDetails, "Character Details")}
-            {renderJsonData(user.socialMediaLinks, "Social Media")}
-            {renderJsonData(user.fursuitGallery, "Fursuit Gallery")}
+            {user.characterDetails && renderJsonData(user.characterDetails, "Character Details")}
+            {user.socialMediaLinks && renderJsonData(user.socialMediaLinks, "Social Media")}
+            {user.fursuitGallery && renderJsonData(user.fursuitGallery, "Fursuit Gallery")}
             
             {user.interestTags && user.interestTags.length > 0 && (
               <div>

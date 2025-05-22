@@ -3,14 +3,10 @@ import prisma from '@/lib/db';
 import { UserUpdateSchema } from '@/lib/validators/user';
 import bcrypt from 'bcrypt';
 
-interface Params {
-  id: string;
-}
-
 // GET Handler for fetching a user profile
-export async function GET(request: Request, context: { params: Params }) {
+export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = context.params;
+    const { id } = await context.params;
 
     if (!id) {
       return NextResponse.json({ message: 'User ID is required' }, { status: 400 });
@@ -35,9 +31,9 @@ export async function GET(request: Request, context: { params: Params }) {
 }
 
 // PUT Handler for updating a user profile
-export async function PUT(request: Request, context: { params: Params }) {
+export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
   try {
-    const { id } = context.params;
+    const { id } = await context.params;
 
     if (!id) {
       return NextResponse.json({ message: 'User ID is required' }, { status: 400 });

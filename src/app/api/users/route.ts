@@ -13,7 +13,7 @@ export async function GET(request: NextRequest) {
 
     const skip = (page - 1) * limit;
 
-    const whereClause: any = {};
+    const whereClause: Record<string, unknown> = {};
     if (searchQuery) {
       whereClause.OR = [
         { username: { contains: searchQuery, mode: 'insensitive' } },

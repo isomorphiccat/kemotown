@@ -3,7 +3,7 @@ import { NextResponse } from 'next/server';
 
 export default withAuth(
   // `withAuth` augments your `Request` with the user's token.
-  function middleware(req) {
+  function middleware() {
     // If no specific checks beyond authentication are needed for the matched routes,
     // just return NextResponse.next() to continue.
     // This is implicitly handled by withAuth if the user is authenticated.

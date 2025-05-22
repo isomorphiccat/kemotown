@@ -22,7 +22,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
       fursuitGallery: '', // Simple text input for now
       characterDetails: '', // Simple text input for now
       socialMediaLinks: '', // Simple text input for now
-      interestTags: '', // Comma-separated string for now
+      interestTags: [], // Array of strings
     }
   );
   const [isLoading, setIsLoading] = useState(false);
@@ -34,10 +34,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
       setFormData({
         ...initialData,
         password: '', // Clear password for edit mode, user can enter a new one if they wish to change it
-        // Convert array to comma-separated string for interestTags if it's an array
-        interestTags: Array.isArray(initialData.interestTags)
-          ? initialData.interestTags.join(', ')
-          : initialData.interestTags || '',
+        // Keep interestTags as array
+        interestTags: initialData.interestTags || [],
       });
     }
   }, [mode, initialData]);
@@ -56,7 +54,11 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
     // Prepare data, converting interestTags from string to array
     const dataToSubmit = {
       ...formData,
-      interestTags: formData.interestTags ? (formData.interestTags as string).split(',').map(tag => tag.trim()).filter(tag => tag) : [],
+      interestTags: Array.isArray(formData.interestTags) 
+        ? formData.interestTags 
+        : formData.interestTags 
+          ? (formData.interestTags as string).split(',').map(tag => tag.trim()).filter(tag => tag) 
+          : [],
       // For JSON fields, ensure they are parsed if needed, or handle as strings if API expects that for simplicity
       // For this implementation, we are sending them as strings and assuming the API can handle it or they are simple URLs.
       // If they were complex JSON objects, we'd parse them:
@@ -99,8 +101,8 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
         }
       }, 1500);
 
-    } catch (err: any) {
-      setError(err.message);
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setIsLoading(false);
     }
@@ -149,7 +151,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
       </div>
       <div>
         <label htmlFor="interestTags" className={labelStyle}>Interest Tags (comma-separated)</label>
-        <input type="text" name="interestTags" id="interestTags" value={formData.interestTags as string} onChange={handleChange} className={inputStyle} placeholder="art, gaming, fursuiting" />
+        <input type="text" name="interestTags" id="interestTags" value={Array.isArray(formData.interestTags) ? formData.interestTags.join(', ') : formData.interestTags || ''} onChange={handleChange} className={inputStyle} placeholder="art, gaming, fursuiting" />
       </div>
 
       {error && <p className="text-sm text-red-600 bg-red-100 p-3 rounded-md">{error}</p>}
