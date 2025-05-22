@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation'; // For accessing route params and navigation
+import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 
 interface UserProfile {
@@ -20,6 +21,7 @@ interface UserProfile {
 const UserProfilePage: React.FC = () => {
   const params = useParams();
   const router = useRouter();
+  const { data: session, status } = useSession();
   const userId = params.id as string;
 
   const [user, setUser] = useState<UserProfile | null>(null);
@@ -27,30 +29,57 @@ const UserProfilePage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (userId) {
-      const fetchUserProfile = async () => {
-        setIsLoading(true);
-        setError(null);
-        try {
-          const response = await fetch(`/api/users/${userId}`);
-          if (!response.ok) {
-            const errorData = await response.json();
-            throw new Error(errorData.message || `Failed to fetch profile (${response.status})`);
-          }
-          const data = await response.json();
-          setUser(data);
-        } catch (err: any) {
-          setError(err.message);
-        } finally {
-          setIsLoading(false);
+    const fetchUserProfile = async () => {
+      setIsLoading(true);
+      setError(null);
+      
+      // Handle "me" case - redirect to current user's profile
+      if (userId === 'me') {
+        if (status === 'loading') {
+          setIsLoading(true);
+          return; // Wait for session to load
         }
-      };
-      fetchUserProfile();
-    } else {
-      setIsLoading(false);
-      setError("User ID is missing.");
-    }
-  }, [userId]);
+        
+        if (status === 'unauthenticated' || !session?.user) {
+          router.push('/login');
+          return;
+        }
+        
+        const currentUserId = (session.user as any)?.id;
+        if (currentUserId) {
+          router.replace(`/profile/${currentUserId}`);
+          return;
+        } else {
+          setError("프로필을 불러올 수 없습니다. 다시 로그인해 주세요.");
+          setIsLoading(false);
+          return;
+        }
+      }
+
+      // Fetch user profile for specific ID
+      if (!userId) {
+        setError("User ID is missing.");
+        setIsLoading(false);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/api/users/${userId}`);
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || `Failed to fetch profile (${response.status})`);
+        }
+        const data = await response.json();
+        setUser(data);
+      } catch (err: any) {
+        setError(err.message);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchUserProfile();
+  }, [userId, session, status, router]);
 
   const renderJsonData = (data: any, title: string) => {
     if (!data) return null;
@@ -71,13 +100,13 @@ const UserProfilePage: React.FC = () => {
   
     return (
       <div>
-        <h3 className="text-lg font-semibold text-slate-700 mt-2">{title}</h3>
+        <h3 className="text-lg font-semibold text-gray-700 mt-2 font-korean">{title}</h3>
         {title.toLowerCase().includes('url') || title.toLowerCase().includes('gallery') ? (
-          <Link href={content} target="_blank" rel="noopener noreferrer" className="text-sky-500 hover:text-sky-700 break-all">
+          <Link href={content} target="_blank" rel="noopener noreferrer" className="text-primary hover:text-primary/80 break-all">
             {content}
           </Link>
         ) : (
-          <pre className="bg-slate-100 p-2 rounded text-sm text-slate-600 whitespace-pre-wrap break-all">{content}</pre>
+          <pre className="bg-gray-50 p-2 rounded text-sm text-gray-600 whitespace-pre-wrap break-all">{content}</pre>
         )}
       </div>
     );
@@ -85,21 +114,41 @@ const UserProfilePage: React.FC = () => {
 
 
   if (isLoading) {
-    return <div className="flex justify-center items-center min-h-screen"><p className="text-lg text-slate-700">Loading profile...</p></div>;
+    return <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-purple-50 to-amber-50"><p className="text-lg text-gray-700 font-korean">프로필을 불러오는 중...</p></div>;
   }
 
   if (error) {
-    return <div className="flex justify-center items-center min-h-screen"><p className="text-lg text-red-600">Error: {error}</p></div>;
+    return <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-purple-50 to-amber-50"><p className="text-lg text-red-600 font-korean">오류: {error}</p></div>;
   }
 
   if (!user) {
-    return <div className="flex justify-center items-center min-h-screen"><p className="text-lg text-slate-700">User not found.</p></div>;
+    return <div className="flex justify-center items-center min-h-screen bg-gradient-to-br from-purple-50 to-amber-50"><p className="text-lg text-gray-700 font-korean">사용자를 찾을 수 없습니다.</p></div>;
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8">
-      <div className="container mx-auto px-4">
-        <div className="max-w-2xl mx-auto bg-white shadow-xl rounded-lg p-6 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800">
+      {/* Header */}
+      <header className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-lg">K</span>
+            </div>
+            <h1 className="text-2xl font-bold text-primary font-korean">Kemotown</h1>
+          </div>
+          <div className="flex space-x-4 items-center">
+            <Link href="/">
+              <button className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-primary font-korean">
+                홈으로
+              </button>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="max-w-2xl mx-auto bg-white shadow-lg hover:shadow-xl transition-shadow rounded-lg p-6 md:p-8">
           <div className="flex flex-col items-center md:flex-row md:items-start">
             {user.profilePictureUrl && (
               <img
@@ -109,12 +158,12 @@ const UserProfilePage: React.FC = () => {
               />
             )}
             <div className="text-center md:text-left flex-grow">
-              <h1 className="text-3xl font-bold text-sky-700">{user.furryName || user.username}</h1>
-              {user.furryName && <p className="text-md text-slate-600">@{user.username}</p>}
-              <p className="text-sm text-slate-500 mt-1">{user.email}</p>
+              <h1 className="text-3xl font-bold text-primary font-korean">{user.furryName || user.username}</h1>
+              {user.furryName && <p className="text-md text-gray-600 font-korean">@{user.username}</p>}
+              <p className="text-sm text-gray-500 mt-1">{user.email}</p>
             </div>
-            <Link href={`/profile/edit/${userId}`} className="mt-4 md:mt-0 px-4 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-md shadow-sm">
-                Edit Profile
+            <Link href={`/profile/edit/${userId}`} className="mt-4 md:mt-0 px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md shadow-sm font-korean">
+                프로필 편집
             </Link>
           </div>
 
@@ -125,10 +174,10 @@ const UserProfilePage: React.FC = () => {
             
             {user.interestTags && user.interestTags.length > 0 && (
               <div>
-                <h3 className="text-lg font-semibold text-slate-700 mt-2">Interests</h3>
+                <h3 className="text-lg font-semibold text-gray-700 mt-2 font-korean">관심사</h3>
                 <div className="flex flex-wrap gap-2 mt-1">
                   {user.interestTags.map(tag => (
-                    <span key={tag} className="px-3 py-1 text-xs font-medium text-sky-800 bg-sky-100 rounded-full">
+                    <span key={tag} className="px-3 py-1 text-xs font-medium text-primary bg-primary/10 rounded-full font-korean">
                       {tag}
                     </span>
                   ))}
@@ -136,8 +185,8 @@ const UserProfilePage: React.FC = () => {
               </div>
             )}
 
-            <p className="text-xs text-slate-400 text-right mt-6">
-              Joined: {new Date(user.createdAt).toLocaleDateString()}
+            <p className="text-xs text-gray-400 text-right mt-6 font-korean">
+              가입일: {new Date(user.createdAt).toLocaleDateString('ko-KR')}
             </p>
           </div>
         </div>

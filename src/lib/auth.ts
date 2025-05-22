@@ -2,9 +2,8 @@ import NextAuth, { NextAuthOptions } from 'next-auth';
 import GoogleProvider from 'next-auth/providers/google';
 import KakaoProvider from 'next-auth/providers/kakao';
 import { PrismaAdapter } from '@auth/prisma-adapter';
-import { PrismaClient } from '@prisma/client';
-
-const prisma = new PrismaClient();
+import { prisma } from './db';
+import { uniqueNamesGenerator, adjectives, animals, Config } from 'unique-names-generator';
 
 export const authOptions: NextAuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -19,30 +18,82 @@ export const authOptions: NextAuthOptions = {
     }),
   ],
   session: {
-    strategy: 'jwt', // Using JWT for session strategy as per common practice
+    strategy: 'jwt', // Use JWT for better middleware compatibility
   },
   callbacks: {
+    async jwt({ token, user, account }) {
+      // Add user info to JWT token when user first signs in
+      if (user) {
+        token.id = user.id;
+        token.username = user.username;
+        token.furryName = user.furryName;
+        token.profilePictureUrl = user.profilePictureUrl || user.image;
+      }
+      return token;
+    },
     async session({ session, token }) {
-      // Add user ID and other custom properties to the session
-      if (token.sub) {
-        (session.user as any).id = token.sub;
+      // Add user ID and custom properties to the session from JWT token
+      if (token && session.user) {
+        (session.user as any).id = token.id;
+        (session.user as any).username = token.username;
+        (session.user as any).furryName = token.furryName;
+        (session.user as any).profilePictureUrl = token.profilePictureUrl;
       }
       return session;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.sub = user.id;
+    async signIn({ user, account, profile }) {
+      // Auto-create username for OAuth users if they don't have one
+      if (account?.provider) {
+        try {
+          const existingUser = await prisma.user.findUnique({
+            where: { id: user.id },
+          });
+          
+          if (existingUser && !existingUser.username) {
+            // Generate random human-readable username
+            const customConfig: Config = {
+              dictionaries: [adjectives, animals],
+              separator: '-',
+              length: 2,
+            };
+            
+            // Ensure username is unique
+            let finalUsername: string;
+            let attempts = 0;
+            do {
+              finalUsername = uniqueNamesGenerator(customConfig);
+              attempts++;
+              // Fallback to timestamp if too many attempts
+              if (attempts > 10) {
+                finalUsername = `user-${Date.now()}`;
+                break;
+              }
+            } while (await prisma.user.findUnique({ where: { username: finalUsername } }));
+            
+            await prisma.user.update({
+              where: { id: user.id },
+              data: { 
+                username: finalUsername,
+                profilePictureUrl: user.image || existingUser.profilePictureUrl,
+              },
+            });
+            
+            // Update the user object with the new username for this session
+            user.username = finalUsername;
+          }
+        } catch (error) {
+          console.error('Error creating username for OAuth user:', error);
+        }
       }
-      return token;
+      return true;
     },
   },
   pages: {
     signIn: '/login', // Specify custom login page
-    // error: '/auth/error', // Optional: Custom error page
-    // newUser: '/auth/new-user' // Optional: Custom new user page
+    // newUser: '/profile/create', // Redirect new users to profile creation
   },
-  // Debugging can be enabled during development
-  // debug: process.env.NODE_ENV === 'development',
+  // Disable debug temporarily to reduce console noise
+  debug: false,
 };
 
 export default NextAuth(authOptions);

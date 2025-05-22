@@ -91,17 +91,44 @@ const UsersDirectoryPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 py-8">
-      <div className="container mx-auto px-4">
-        <h1 className="text-3xl font-bold text-center text-sky-700 mb-8">User Directory</h1>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800">
+      {/* Header */}
+      <header className="container mx-auto px-4 py-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-2">
+            <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
+              <span className="text-white font-bold text-lg">K</span>
+            </div>
+            <h1 className="text-2xl font-bold text-primary font-korean">Kemotown</h1>
+          </div>
+          <div className="flex space-x-4 items-center">
+            <Link href="/">
+              <button className="px-4 py-2 text-sm font-medium text-gray-700 hover:text-primary font-korean">
+                홈으로
+              </button>
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center mb-8">
+          <h2 className="text-3xl font-bold text-gray-900 dark:text-white mb-4 font-korean">
+            사용자 둘러보기
+          </h2>
+          <p className="text-gray-600 dark:text-gray-300 font-korean">
+            Kemotown 커뮤니티의 멤버들을 만나보세요
+          </p>
+        </div>
         
         <UserSearch onSearch={handleSearch} initialQuery={currentSearchQuery} />
 
-        {isLoading && <p className="text-center text-slate-700">Loading users...</p>}
-        {error && <p className="text-center text-red-600">Error: {error}</p>}
+        {isLoading && <p className="text-center text-gray-700 font-korean">사용자를 불러오는 중...</p>}
+        {error && <p className="text-center text-red-600 font-korean">오류: {error}</p>}
 
         {!isLoading && !error && users.length === 0 && (
-          <p className="text-center text-slate-600">No users found matching your criteria.</p>
+          <p className="text-center text-gray-600 font-korean">검색 조건에 맞는 사용자가 없습니다.</p>
         )}
 
         {!isLoading && !error && users.length > 0 && (
@@ -109,8 +136,8 @@ const UsersDirectoryPage: React.FC = () => {
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {users.map((user) => (
                 <Link key={user.id} href={`/profile/${user.id}`} passHref>
-                  <div className="bg-white rounded-lg shadow-lg overflow-hidden transform transition-all hover:scale-105 cursor-pointer">
-                    <div className="h-48 w-full bg-slate-200 flex items-center justify-center">
+                  <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105 cursor-pointer border-none">
+                    <div className="h-48 w-full bg-gray-100 flex items-center justify-center">
                       {user.profilePictureUrl ? (
                         <img
                           src={user.profilePictureUrl}
@@ -118,20 +145,24 @@ const UsersDirectoryPage: React.FC = () => {
                           className="w-full h-full object-cover"
                         />
                       ) : (
-                        <span className="text-slate-500 text-2xl">?</span> // Placeholder
+                        <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center">
+                          <span className="text-primary text-2xl font-bold">
+                            {(user.furryName || user.username || '?').charAt(0).toUpperCase()}
+                          </span>
+                        </div>
                       )}
                     </div>
                     <div className="p-4">
-                      <h3 className="text-lg font-semibold text-sky-600 truncate" title={user.furryName || user.username}>
+                      <h3 className="text-lg font-semibold text-primary truncate font-korean" title={user.furryName || user.username}>
                         {user.furryName || user.username}
                       </h3>
                       {user.furryName && (
-                        <p className="text-sm text-slate-500 truncate" title={user.username}>@{user.username}</p>
+                        <p className="text-sm text-gray-500 truncate font-korean" title={user.username}>@{user.username}</p>
                       )}
                       {user.interestTags && user.interestTags.length > 0 && (
                         <div className="mt-2 flex flex-wrap gap-1">
-                          {user.interestTags.slice(0, 3).map(tag => ( // Show max 3 tags
-                            <span key={tag} className="px-2 py-0.5 text-xs font-medium text-sky-800 bg-sky-100 rounded-full">
+                          {user.interestTags.slice(0, 3).map(tag => (
+                            <span key={tag} className="px-2 py-0.5 text-xs font-medium text-primary bg-primary/10 rounded-full font-korean">
                               {tag}
                             </span>
                           ))}
@@ -148,19 +179,19 @@ const UsersDirectoryPage: React.FC = () => {
               <button
                 onClick={() => handlePageChange(currentPage - 1)}
                 disabled={currentPage <= 1 || isLoading}
-                className="px-4 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-md disabled:bg-slate-400 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed font-korean"
               >
-                Previous
+                이전
               </button>
-              <span className="text-sm text-slate-700">
-                Page {currentPage} of {totalPages}
+              <span className="text-sm text-gray-700 font-korean">
+                {currentPage} / {totalPages} 페이지
               </span>
               <button
                 onClick={() => handlePageChange(currentPage + 1)}
                 disabled={currentPage >= totalPages || isLoading}
-                className="px-4 py-2 text-sm font-medium text-white bg-sky-600 hover:bg-sky-700 rounded-md disabled:bg-slate-400 disabled:cursor-not-allowed"
+                className="px-4 py-2 text-sm font-medium text-white bg-primary hover:bg-primary/90 rounded-md disabled:bg-gray-400 disabled:cursor-not-allowed font-korean"
               >
-                Next
+                다음
               </button>
             </div>
           </>

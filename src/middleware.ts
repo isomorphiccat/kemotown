@@ -4,11 +4,6 @@ import { NextResponse } from 'next/server';
 export default withAuth(
   // `withAuth` augments your `Request` with the user's token.
   function middleware(req) {
-    // Example: Check for a specific role or claim if needed in the future
-    // if (req.nextauth.token?.role !== "admin") {
-    //   return new NextResponse("You are not authorized!");
-    // }
-
     // If no specific checks beyond authentication are needed for the matched routes,
     // just return NextResponse.next() to continue.
     // This is implicitly handled by withAuth if the user is authenticated.
@@ -21,7 +16,6 @@ export default withAuth(
     },
     pages: {
       signIn: '/login', // Redirect to this page if not authorized
-      // error: '/auth-error', // Optional: Custom error page for auth errors
     },
   }
 );
