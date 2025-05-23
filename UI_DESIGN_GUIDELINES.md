@@ -236,7 +236,7 @@ xl: 1280px   /* Large desktops */
 ```jsx
 <div className="space-y-4">
   {timeline.map(item => (
-    <div className="flex items-start space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
+    <div key={item.id} className="flex items-start space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
       <Avatar />
       <div className="flex-1">
         <p className="font-korean">
@@ -248,7 +248,6 @@ xl: 1280px   /* Large desktops */
     </div>
   ))}
 </div>
-```
 
 ### User Discovery Cards
 ```jsx
@@ -260,8 +259,8 @@ xl: 1280px   /* Large desktops */
     </h3>
     <p className="text-sm text-gray-600 dark:text-gray-300 font-korean">@{username}</p>
     <div className="flex flex-wrap justify-center gap-1 mt-3">
-      {interestTags.map(tag => (
-        <span className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-korean">
+      {interestTags.map((tag, idx) => (
+        <span key={idx} className="px-2 py-1 bg-purple-100 text-purple-800 rounded-full text-xs font-korean">
           {tag}
         </span>
       ))}
