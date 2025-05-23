@@ -12,9 +12,7 @@ jest.mock('next-auth/react', () => ({
 
 // Mock next/navigation
 jest.mock('next/navigation', () => ({
-  useSearchParams: jest.fn(() => ({
-    get: jest.fn(() => null), // Default to no error
-  })),
+  useSearchParams: jest.fn(),
 }));
 
 const mockSignIn = signIn as jest.MockedFunction<typeof signIn>;
@@ -26,9 +24,7 @@ describe('LoginButtons', () => {
     mockSignIn.mockClear();
     mockUseSearchParams.mockClear();
     // Reset useSearchParams to default mock implementation for each test
-    mockUseSearchParams.mockImplementation(() => ({
-        get: jest.fn(() => null),
-    }));
+    mockUseSearchParams.mockReturnValue(new URLSearchParams());
   });
 
   it('renders Google and Kakao sign-in buttons', () => {
@@ -40,19 +36,20 @@ describe('LoginButtons', () => {
   it('calls signIn with "google" when Google button is clicked', () => {
     render(<LoginButtons />);
     fireEvent.click(screen.getByText('Sign in with Google'));
-    expect(mockSignIn).toHaveBeenCalledWith('google', { callbackUrl: '/' });
+    expect(mockSignIn).toHaveBeenCalledWith('google', { callbackUrl: '/', redirect: true });
   });
 
   it('calls signIn with "kakao" when Kakao button is clicked', () => {
     render(<LoginButtons />);
     fireEvent.click(screen.getByText('Sign in with Kakao'));
-    expect(mockSignIn).toHaveBeenCalledWith('kakao', { callbackUrl: '/' });
+    expect(mockSignIn).toHaveBeenCalledWith('kakao', { callbackUrl: '/', redirect: true });
   });
 
   it('displays an error message if error query param is present', () => {
-    mockUseSearchParams.mockReturnValueOnce({
-      get: jest.fn((param: string) => param === 'error' ? 'OAuthAccountNotLinked' : null),
-    });
+    const searchParams = new URLSearchParams();
+    searchParams.set('error', 'OAuthAccountNotLinked');
+    mockUseSearchParams.mockReturnValueOnce(searchParams);
+    
     render(<LoginButtons />);
     expect(screen.getByText('Login Error:')).toBeInTheDocument();
     expect(screen.getByText(/This account is already linked with another provider./)).toBeInTheDocument();

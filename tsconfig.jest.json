@@ -1,15 +1,16 @@
 {
   "extends": "./tsconfig.json",
   "compilerOptions": {
-    "jsx": "react-jsx", // or "preserve" depending on project setup
+    "jsx": "react-jsx",
     "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "types": ["jest", "@testing-library/jest-dom"]
   },
   "include": [
     "**/*.test.ts",
     "**/*.test.tsx",
     "**/*.spec.ts",
     "**/*.spec.tsx",
-    "jest.setup.js" // or .ts
+    "jest.setup.ts"
   ]
 }
