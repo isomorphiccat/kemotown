@@ -187,13 +187,12 @@ small: text-sm             /* Secondary text */
 
 ### Error/Success Messages
 ```jsx
-<div className="bg-red-50 border border-red-200 rounded-lg p-4">
+<div role="alert" className="bg-red-50 border border-red-200 rounded-lg p-4">
   <p className="text-sm text-red-600 font-korean">{error}</p>
 </div>
-<div className="bg-green-50 border border-green-200 rounded-lg p-4">
+<div role="status" className="bg-green-50 border border-green-200 rounded-lg p-4">
   <p className="text-sm text-green-600 font-korean">{success}</p>
 </div>
-```
 
 ## 9. Responsive Design
 
