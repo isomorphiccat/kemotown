@@ -67,9 +67,13 @@ jobs:
 
     - name: Verify Prisma schema
       run: npx prisma validate
+      env:
+        DATABASE_URL: "postgresql://user:pass@localhost:5432/test"
 
     - name: Generate Prisma client
       run: npx prisma generate
+      env:
+        DATABASE_URL: "postgresql://user:pass@localhost:5432/test"
 
     - name: Build for production
       run: npm run build
