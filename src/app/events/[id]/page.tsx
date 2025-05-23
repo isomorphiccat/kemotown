@@ -250,7 +250,10 @@ const EventDetailPage: React.FC = () => {
                       {event.title}
                     </CardTitle>
                     <CardDescription className="text-lg font-korean">
-                      {event.host.furryName || event.host.username} 주최
+                      <Link href={`/profile/${event.host.username}`} className="hover:text-primary transition-colors">
+                        {event.host.furryName || event.host.username}
+                      </Link>{' '}
+                      주최
                     </CardDescription>
                   </div>
                   <div className="text-right">
@@ -469,7 +472,7 @@ const EventDetailPage: React.FC = () => {
                         {event.rsvps
                           .filter(rsvp => rsvp.status === 'ATTENDING')
                           .map((rsvp) => (
-                            <div key={rsvp.id} className="flex items-center space-x-3 p-2 bg-green-50 dark:bg-green-900/20 rounded">
+                            <Link key={rsvp.id} href={`/profile/${rsvp.user.username}`} className="flex items-center space-x-3 p-2 bg-green-50 dark:bg-green-900/20 rounded hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors">
                               <div className="w-8 h-8 bg-green-100 dark:bg-green-800 rounded-full flex items-center justify-center">
                                 <span className="text-green-700 dark:text-green-300 text-sm font-bold">
                                   {(rsvp.user.furryName || rsvp.user.username || '?').charAt(0).toUpperCase()}
@@ -480,7 +483,7 @@ const EventDetailPage: React.FC = () => {
                                   {rsvp.user.furryName || rsvp.user.username}
                                 </p>
                               </div>
-                            </div>
+                            </Link>
                           ))}
                       </div>
                     </div>
@@ -494,7 +497,7 @@ const EventDetailPage: React.FC = () => {
                         {event.rsvps
                           .filter(rsvp => rsvp.status === 'CONSIDERING')
                           .map((rsvp) => (
-                            <div key={rsvp.id} className="flex items-center space-x-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded">
+                            <Link key={rsvp.id} href={`/profile/${rsvp.user.username}`} className="flex items-center space-x-3 p-2 bg-yellow-50 dark:bg-yellow-900/20 rounded hover:bg-yellow-100 dark:hover:bg-yellow-900/30 transition-colors">
                               <div className="w-8 h-8 bg-yellow-100 dark:bg-yellow-800 rounded-full flex items-center justify-center">
                                 <span className="text-yellow-700 dark:text-yellow-300 text-sm font-bold">
                                   {(rsvp.user.furryName || rsvp.user.username || '?').charAt(0).toUpperCase()}
@@ -505,7 +508,7 @@ const EventDetailPage: React.FC = () => {
                                   {rsvp.user.furryName || rsvp.user.username}
                                 </p>
                               </div>
-                            </div>
+                            </Link>
                           ))}
                       </div>
                     </div>

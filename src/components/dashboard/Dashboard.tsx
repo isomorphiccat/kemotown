@@ -220,14 +220,18 @@ const Dashboard: React.FC = () => {
                 <div className="space-y-4">
                   {timeline.map((item) => (
                     <div key={item.id} className="flex items-start space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center flex-shrink-0">
-                        <span className="text-primary font-bold text-sm">
-                          {item.furryName?.charAt(0) || item.username?.charAt(0) || '?'}
-                        </span>
-                      </div>
+                      <Link href={`/profile/${item.username}`} className="flex-shrink-0">
+                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors">
+                          <span className="text-primary font-bold text-sm">
+                            {item.furryName?.charAt(0) || item.username?.charAt(0) || '?'}
+                          </span>
+                        </div>
+                      </Link>
                       <div className="flex-1 min-w-0">
                         <p className="text-sm text-gray-900 dark:text-white font-korean">
-                          <span className="font-semibold">{item.furryName || item.username}</span>
+                          <Link href={`/profile/${item.username}`} className="font-semibold hover:text-primary transition-colors">
+                            {item.furryName || item.username}
+                          </Link>
                           {item.type === 'event_created' && ' 님이 새로운 이벤트를 만들었습니다'}
                           {item.type === 'user_joined' && ' 님이 커뮤니티에 가입했습니다'}
                           {item.type === 'rsvp_update' && ' 님이 이벤트에 참가 신청했습니다'}
@@ -308,7 +312,7 @@ const Dashboard: React.FC = () => {
               <CardContent>
                 <div className="space-y-3">
                   {recentUsers.map((user) => (
-                    <div key={user.id} className="flex items-center space-x-3">
+                    <Link key={user.id} href={`/profile/${user.username}`} className="flex items-center space-x-3 p-2 -mx-2 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
                       <div className="w-8 h-8 bg-primary/10 rounded-full flex items-center justify-center">
                         <span className="text-primary text-sm font-bold">
                           {(user.furryName || user.username).charAt(0).toUpperCase()}
@@ -322,10 +326,8 @@ const Dashboard: React.FC = () => {
                           {user.interestTags?.slice(0, 2).join(', ')}
                         </p>
                       </div>
-                      <Link href={`/profile/${user.username}`}>
-                        <Button variant="ghost" size="sm" className="text-xs font-korean">보기</Button>
-                      </Link>
-                    </div>
+                      <span className="text-xs text-primary font-korean">보기 →</span>
+                    </Link>
                   ))}
                 </div>
                 <Link href="/users" className="mt-4 block">
