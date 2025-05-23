@@ -24,7 +24,7 @@ const UserProfilePage: React.FC = () => {
   const params = useParams();
   const router = useRouter();
   const { data: session, status } = useSession();
-  const userId = params.id as string;
+  const username = params.username as string;
 
   const [user, setUser] = useState<UserProfile | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -36,7 +36,7 @@ const UserProfilePage: React.FC = () => {
       setError(null);
       
       // Handle "me" case - redirect to current user's profile
-      if (userId === 'me') {
+      if (username === 'me') {
         if (status === 'loading') {
           setIsLoading(true);
           return; // Wait for session to load
@@ -47,27 +47,27 @@ const UserProfilePage: React.FC = () => {
           return;
         }
         
-        const currentUserId = (session.user as { id?: string })?.id;
+        const currentUsername = (session.user as { username?: string })?.username;
         
-        if (currentUserId) {
-          router.replace(`/profile/${currentUserId}`);
+        if (currentUsername) {
+          router.replace(`/profile/${currentUsername}`);
           return;
         } else {
-          setError("프로필을 불러올 수 없습니다. 사용자 ID를 찾을 수 없습니다. 다시 로그인해 주세요.");
+          setError("프로필을 불러올 수 없습니다. 사용자명을 찾을 수 없습니다. 다시 로그인해 주세요.");
           setIsLoading(false);
           return;
         }
       }
 
-      // Fetch user profile for specific ID
-      if (!userId) {
-        setError("사용자 ID가 누락되었습니다.");
+      // Fetch user profile for specific username
+      if (!username) {
+        setError("사용자명이 누락되었습니다.");
         setIsLoading(false);
         return;
       }
 
       try {
-        const response = await fetch(`/api/users/${userId}`);
+        const response = await fetch(`/api/users/${username}`);
         if (!response.ok) {
           const errorData = await response.json();
           throw new Error(errorData.message || `Failed to fetch profile (${response.status})`);
@@ -82,9 +82,9 @@ const UserProfilePage: React.FC = () => {
     };
 
     fetchUserProfile();
-  }, [userId, session, status, router]);
+  }, [username, session, status, router]);
 
-  const isOwnProfile = session?.user && (session.user as { id?: string }).id === userId;
+  const isOwnProfile = session?.user && (session.user as { username?: string }).username === username;
 
   const renderField = (data: Record<string, unknown> | string, title: string, icon: string) => {
     if (!data) return null;
@@ -215,7 +215,7 @@ const UserProfilePage: React.FC = () => {
                 {/* Edit Button */}
                 {isOwnProfile && (
                   <div className="flex-shrink-0">
-                    <Link href={`/profile/edit/${userId}`}>
+                    <Link href={`/profile/edit/${user.username}`}>
                       <Button className="font-korean">프로필 편집</Button>
                     </Link>
                   </div>
@@ -279,7 +279,7 @@ const UserProfilePage: React.FC = () => {
                     }
                   </p>
                   {isOwnProfile && (
-                    <Link href={`/profile/edit/${userId}`}>
+                    <Link href={`/profile/edit/${user.username}`}>
                       <Button className="font-korean">프로필 편집하기</Button>
                     </Link>
                   )}

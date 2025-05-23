@@ -322,7 +322,7 @@ const Dashboard: React.FC = () => {
                           {user.interestTags?.slice(0, 2).join(', ')}
                         </p>
                       </div>
-                      <Link href={`/profile/${user.id}`}>
+                      <Link href={`/profile/${user.username}`}>
                         <Button variant="ghost" size="sm" className="text-xs font-korean">보기</Button>
                       </Link>
                     </div>

@@ -3,17 +3,17 @@ import prisma from '@/lib/db';
 import { UserUpdateSchema } from '@/lib/validators/user';
 import bcrypt from 'bcrypt';
 
-// GET Handler for fetching a user profile
-export async function GET(request: Request, context: { params: Promise<{ id: string }> }) {
+// GET Handler for fetching a user profile by username
+export async function GET(request: Request, context: { params: Promise<{ username: string }> }) {
   try {
-    const { id } = await context.params;
+    const { username } = await context.params;
 
-    if (!id) {
-      return NextResponse.json({ message: 'User ID is required' }, { status: 400 });
+    if (!username) {
+      return NextResponse.json({ message: 'Username is required' }, { status: 400 });
     }
 
     const user = await prisma.user.findUnique({
-      where: { id },
+      where: { username },
     });
 
     if (!user) {
@@ -30,13 +30,13 @@ export async function GET(request: Request, context: { params: Promise<{ id: str
   }
 }
 
-// PUT Handler for updating a user profile
-export async function PUT(request: Request, context: { params: Promise<{ id: string }> }) {
+// PUT Handler for updating a user profile by username
+export async function PUT(request: Request, context: { params: Promise<{ username: string }> }) {
   try {
-    const { id } = await context.params;
+    const { username } = await context.params;
 
-    if (!id) {
-      return NextResponse.json({ message: 'User ID is required' }, { status: 400 });
+    if (!username) {
+      return NextResponse.json({ message: 'Username is required' }, { status: 400 });
     }
 
     const body = await request.json();
@@ -48,9 +48,8 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
 
     const { password, ...updateData } = validation.data;
 
-    // Check if user exists
     const existingUser = await prisma.user.findUnique({
-      where: { id },
+      where: { username },
     });
 
     if (!existingUser) {
@@ -83,7 +82,7 @@ export async function PUT(request: Request, context: { params: Promise<{ id: str
     }
 
     const updatedUser = await prisma.user.update({
-      where: { id },
+      where: { id: existingUser.id },
       data: {
         ...updateData,
         ...(hashedPassword && { password: hashedPassword }), // Only include password if it was provided and hashed
