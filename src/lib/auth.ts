@@ -47,7 +47,7 @@ export const authOptions: NextAuthOptions = {
       else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     },
-    async signIn({ user, account, profile, email, credentials }) {
+    async signIn({ user, account }) {
       // Auto-create username for OAuth users if they don't have one
       if (account?.provider) {
         try {
