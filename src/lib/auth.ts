@@ -47,52 +47,8 @@ export const authOptions: NextAuthOptions = {
       else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     },
-    async signIn({ user, account }) {
-      // Auto-create username for OAuth users if they don't have one
-      if (account?.provider) {
-        try {
-          const existingUser = await prisma.user.findUnique({
-            where: { id: user.id },
-          });
-          
-          if (existingUser && !existingUser.username) {
-            // Generate random human-readable username
-            const customConfig: Config = {
-              dictionaries: [adjectives, animals],
-              separator: '-',
-              length: 2,
-            };
-            
-            // Ensure username is unique
-            let finalUsername: string;
-            let attempts = 0;
-            do {
-              finalUsername = uniqueNamesGenerator(customConfig);
-              attempts++;
-              // Fallback to timestamp if too many attempts
-              if (attempts > 10) {
-                finalUsername = `user-${Date.now()}`;
-                break;
-              }
-            } while (await prisma.user.findUnique({ where: { username: finalUsername } }));
-            
-            await prisma.user.update({
-              where: { id: user.id },
-              data: { 
-                username: finalUsername,
-                profilePictureUrl: user.image || existingUser.profilePictureUrl,
-              },
-            });
-            
-            // Update the user object with the new username for this session
-            (user as { username?: string }).username = finalUsername;
-          }
-        } catch (error) {
-          console.error('Error creating username for OAuth user:', error);
-          // Don't block sign-in on username creation failure
-          return true;
-        }
-      }
+    async signIn() {
+      // Allow all sign-ins
       return true;
     },
   },
@@ -100,6 +56,45 @@ export const authOptions: NextAuthOptions = {
     signIn: '/login', // Specify custom login page
     error: '/login', // Redirect errors to login page
     // newUser: '/profile/create', // Redirect new users to profile creation
+  },
+  events: {
+    async createUser({ user }) {
+      // Generate username for new OAuth users
+      try {
+        // Generate random human-readable username
+        const customConfig: Config = {
+          dictionaries: [adjectives, animals],
+          separator: '-',
+          length: 2,
+        };
+        
+        // Ensure username is unique
+        let finalUsername: string;
+        let attempts = 0;
+        do {
+          finalUsername = uniqueNamesGenerator(customConfig);
+          attempts++;
+          // Fallback to timestamp if too many attempts
+          if (attempts > 10) {
+            finalUsername = `user-${Date.now()}`;
+            break;
+          }
+        } while (await prisma.user.findUnique({ where: { username: finalUsername } }));
+        
+        // Update the newly created user with username and profile picture
+        await prisma.user.update({
+          where: { id: user.id },
+          data: { 
+            username: finalUsername,
+            profilePictureUrl: user.image,
+          },
+        });
+        
+        console.log(`Generated username "${finalUsername}" for new user ${user.id}`);
+      } catch (error) {
+        console.error('Error generating username for new user:', error);
+      }
+    },
   },
   // Enable debug for troubleshooting
   debug: process.env.NODE_ENV === 'development',
