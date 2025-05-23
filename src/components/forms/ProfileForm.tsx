@@ -115,10 +115,10 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
       setSuccessMessage(mode === 'create' ? '프로필이 성공적으로 생성되었습니다!' : '프로필이 성공적으로 업데이트되었습니다!');
       
       setTimeout(() => {
-        if (mode === 'create' && result.id) {
-          router.push(`/profile/${result.id}`);
-        } else if (mode === 'edit' && userId) {
-          router.push(`/profile/${userId}`);
+        if (mode === 'create' && result.username) {
+          router.push(`/profile/${result.username}`);
+        } else if (mode === 'edit' && result.username) {
+          router.push(`/profile/${result.username}`);
         }
       }, 1500);
 
@@ -133,7 +133,7 @@ const ProfileForm: React.FC<ProfileFormProps> = ({ mode, userId, initialData }) 
     <div className="min-h-screen bg-gradient-to-br from-purple-50 to-amber-50 dark:from-gray-900 dark:to-gray-800 py-8">
       <div className="container mx-auto px-4 max-w-4xl">
         <div className="mb-8">
-          <Link href={mode === 'edit' ? `/profile/${userId}` : '/'} className="inline-flex items-center text-purple-600 hover:text-purple-800 transition-colors mb-4">
+          <Link href={mode === 'edit' && initialData?.username ? `/profile/${initialData.username}` : '/'} className="inline-flex items-center text-purple-600 hover:text-purple-800 transition-colors mb-4">
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
             </svg>

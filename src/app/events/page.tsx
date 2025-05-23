@@ -189,7 +189,10 @@ const EventsPage: React.FC = () => {
                       {event.title}
                     </CardTitle>
                     <CardDescription className="font-korean">
-                      {event.host.furryName || event.host.username} 주최
+                      <Link href={`/profile/${event.host.username}`} className="hover:text-primary transition-colors">
+                        {event.host.furryName || event.host.username}
+                      </Link>{' '}
+                      주최
                     </CardDescription>
                   </CardHeader>
                   <CardContent>

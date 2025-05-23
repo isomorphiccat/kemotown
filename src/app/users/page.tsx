@@ -136,7 +136,7 @@ const UsersDirectoryContent: React.FC = () => {
           <>
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
               {users.map((user) => (
-                <Link key={user.id} href={`/profile/${user.id}`} passHref>
+                <Link key={user.id} href={`/profile/${user.username}`} passHref>
                   <div className="bg-white rounded-lg shadow-lg hover:shadow-xl transition-all transform hover:scale-105 cursor-pointer border-none">
                     <div className="h-48 w-full bg-gray-100 flex items-center justify-center">
                       {user.profilePictureUrl ? (

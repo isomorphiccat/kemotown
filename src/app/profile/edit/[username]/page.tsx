@@ -7,19 +7,19 @@ import { UserUpdateData } from '@/lib/validators/user'; // Zod type for update
 
 const EditProfilePage: React.FC = () => {
   const params = useParams();
-  const userId = params.id as string;
+  const username = params.username as string;
 
   const [initialData, setInitialData] = useState<Partial<UserUpdateData> | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (userId) {
+    if (username) {
       const fetchUserProfile = async () => {
         setIsLoading(true);
         setError(null);
         try {
-          const response = await fetch(`/api/users/${userId}`);
+          const response = await fetch(`/api/users/${username}`);
           if (!response.ok) {
             const errorData = await response.json();
             throw new Error(errorData.message || `Failed to fetch profile for editing (${response.status})`);
@@ -38,10 +38,10 @@ const EditProfilePage: React.FC = () => {
       };
       fetchUserProfile();
     } else {
-        setError("User ID is missing.");
+        setError("Username is missing.");
         setIsLoading(false);
     }
-  }, [userId]);
+  }, [username]);
 
   if (isLoading) {
     return (
@@ -67,7 +67,7 @@ const EditProfilePage: React.FC = () => {
     );
   }
 
-  return <ProfileForm mode="edit" userId={userId} initialData={initialData} />;
+  return <ProfileForm mode="edit" userId={username} initialData={initialData} />;
 };
 
 export default EditProfilePage;
