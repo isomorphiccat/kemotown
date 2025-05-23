@@ -41,6 +41,12 @@ export const authOptions: NextAuthOptions = {
       }
       return session;
     },
+    async redirect({ url, baseUrl }) {
+      // Handle mobile OAuth redirects properly
+      if (url.startsWith("/")) return `${baseUrl}${url}`;
+      else if (new URL(url).origin === baseUrl) return url;
+      return baseUrl;
+    },
     async signIn({ user, account }) {
       // Auto-create username for OAuth users if they don't have one
       if (account?.provider) {
@@ -83,6 +89,8 @@ export const authOptions: NextAuthOptions = {
           }
         } catch (error) {
           console.error('Error creating username for OAuth user:', error);
+          // Don't block sign-in on username creation failure
+          return true;
         }
       }
       return true;
@@ -90,10 +98,24 @@ export const authOptions: NextAuthOptions = {
   },
   pages: {
     signIn: '/login', // Specify custom login page
+    error: '/login', // Redirect errors to login page
     // newUser: '/profile/create', // Redirect new users to profile creation
   },
-  // Disable debug for production
-  debug: false,
+  // Enable debug for troubleshooting
+  debug: process.env.NODE_ENV === 'development',
+  logger: {
+    error(code, metadata) {
+      console.error('NextAuth Error:', code, metadata);
+    },
+    warn(code) {
+      console.warn('NextAuth Warning:', code);
+    },
+    debug(code, metadata) {
+      if (process.env.NODE_ENV === 'development') {
+        console.log('NextAuth Debug:', code, metadata);
+      }
+    },
+  },
 };
 
 export default NextAuth(authOptions);

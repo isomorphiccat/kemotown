@@ -1,7 +1,7 @@
 // jest.config.js
 module.exports = {
   testEnvironment: 'jest-environment-jsdom',
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'], // or .ts
+  setupFilesAfterEnv: ['<rootDir>/jest.setup.ts'],
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1', // To match TypeScript path aliases
     '\.(css|less|scss|sass)$': 'identity-obj-proxy', // Mock CSS imports
