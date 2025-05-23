@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { RSVP } from '@prisma/client';
 
 // GET /api/events/[id] - Get single event with RSVP status
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
@@ -52,7 +53,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     // Get current user's RSVP status if logged in
     let userRsvpStatus = null;
     if (userId) {
-      const userRsvp = event.rsvps.find(rsvp => rsvp.userId === userId);
+      const userRsvp = event.rsvps.find((rsvp: RSVP) => rsvp.userId === userId);
       userRsvpStatus = userRsvp ? userRsvp.status : null;
     }
 

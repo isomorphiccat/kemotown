@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { Event, User, RSVP } from '@prisma/client';
 
 interface TimelineItem {
   id: string;
@@ -47,7 +48,9 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    recentEvents.forEach(event => {
+    recentEvents.forEach((event: Event & {
+      host: Pick<User, 'id' | 'username' | 'furryName'>;
+    }) => {
       timeline.push({
         id: `event_${event.id}`,
         type: 'event_created',
@@ -73,7 +76,7 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    recentUsers.forEach(user => {
+    recentUsers.forEach((user: Pick<User, 'id' | 'username' | 'furryName' | 'createdAt'>) => {
       timeline.push({
         id: `user_${user.id}`,
         type: 'user_joined',
@@ -109,7 +112,10 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    recentRSVPs.forEach(rsvp => {
+    recentRSVPs.forEach((rsvp: RSVP & {
+      user: Pick<User, 'id' | 'username' | 'furryName'>;
+      event: Pick<Event, 'id' | 'title'>;
+    }) => {
       timeline.push({
         id: `rsvp_${rsvp.id}`,
         type: 'rsvp_update',

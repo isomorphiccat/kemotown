@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { User } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,7 +34,7 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform the data to match the Dashboard component interface
-    const transformedUsers = recentUsers.map(user => ({
+    const transformedUsers = recentUsers.map((user: Pick<User, 'id' | 'username' | 'furryName' | 'profilePictureUrl' | 'interestTags'>) => ({
       id: user.id,
       username: user.username || 'unknown',
       furryName: user.furryName || undefined,

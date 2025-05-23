@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth';
 import prisma from '@/lib/db';
+import { Event, User, RSVP } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -83,7 +84,10 @@ export async function GET(request: NextRequest) {
     });
 
     // Transform the data to match the Dashboard component interface
-    const transformedUpcomingEvents = upcomingEvents.map(event => ({
+    const transformedUpcomingEvents = upcomingEvents.map((event: Event & {
+      host: Pick<User, 'id' | 'username' | 'furryName'>;
+      _count: { rsvps: number };
+    }) => ({
       id: event.id,
       title: event.title,
       description: event.description,
@@ -98,7 +102,10 @@ export async function GET(request: NextRequest) {
       attendeeCount: event._count.rsvps
     }));
 
-    const transformedUserEvents = userEvents.map(event => ({
+    const transformedUserEvents = userEvents.map((event: Event & {
+      host: Pick<User, 'id' | 'username' | 'furryName'>;
+      rsvps: Pick<RSVP, 'status'>[];
+    }) => ({
       id: event.id,
       title: event.title,
       startDate: event.startDate.toISOString(),
