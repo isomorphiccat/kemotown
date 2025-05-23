@@ -1,16 +1,16 @@
-import { PrismaClient } from '@prisma/client';
-import { uniqueNamesGenerator, adjectives, animals, Config } from 'unique-names-generator';
+const { PrismaClient } = require('@prisma/client');
+const { uniqueNamesGenerator, adjectives, animals } = require('unique-names-generator');
 
 const prisma = new PrismaClient();
 
-async function generateUniqueUsername(): Promise<string> {
-  const customConfig: Config = {
+async function generateUniqueUsername(existingUsernames) {
+  const customConfig = {
     dictionaries: [adjectives, animals],
     separator: '-',
     length: 2,
   };
   
-  let finalUsername: string;
+  let finalUsername;
   let attempts = 0;
   
   do {
@@ -21,14 +21,28 @@ async function generateUniqueUsername(): Promise<string> {
       finalUsername = `user-${Date.now()}`;
       break;
     }
-  } while (await prisma.user.findUnique({ where: { username: finalUsername } }));
+  } while (existingUsernames.has(finalUsername));
   
+  existingUsernames.add(finalUsername); // Add to set for next iterations
   return finalUsername;
 }
 
 async function fixEmptyUsernames() {
   try {
     console.log('Starting to fix users with empty usernames...');
+    
+    // Fetch all existing usernames once for efficiency
+    const existingUsernames = new Set(
+      (await prisma.user.findMany({
+        select: { username: true },
+        where: { 
+          NOT: [
+            { username: null }, 
+            { username: '' }
+          ] 
+        }
+      })).map(u => u.username).filter(Boolean)
+    );
     
     // Find all users with null or empty usernames
     const usersWithEmptyUsernames = await prisma.user.findMany({
@@ -43,7 +57,7 @@ async function fixEmptyUsernames() {
     console.log(`Found ${usersWithEmptyUsernames.length} users with empty usernames`);
     
     for (const user of usersWithEmptyUsernames) {
-      const newUsername = await generateUniqueUsername();
+      const newUsername = await generateUniqueUsername(existingUsernames);
       
       await prisma.user.update({
         where: { id: user.id },

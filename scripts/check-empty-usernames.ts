@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
 
@@ -34,11 +34,17 @@ async function checkEmptyUsernames() {
       
       for (const user of usersWithEmptyUsernames) {
         const id = user.id.padEnd(36);
-        const email = (user.email || '').padEnd(24).substring(0, 24);
-        const name = (user.name || '').padEnd(18).substring(0, 18);
+        
+        // Handle long values more elegantly with ellipsis
+        const email = (user.email || '');
+        const emailDisplay = email.length > 24 ? email.substring(0, 21) + '...' : email.padEnd(24);
+        
+        const name = (user.name || '');
+        const nameDisplay = name.length > 18 ? name.substring(0, 15) + '...' : name.padEnd(18);
+        
         const createdAt = user.createdAt.toISOString().substring(0, 19);
         
-        console.log(`${id} | ${email} | ${name} | ${createdAt}`);
+        console.log(`${id} | ${emailDisplay} | ${nameDisplay} | ${createdAt}`);
       }
       
       console.log('\n\nTo fix these manually, you can run SQL queries like:');

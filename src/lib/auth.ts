@@ -90,7 +90,9 @@ export const authOptions: NextAuthOptions = {
           },
         });
         
-        console.log(`Generated username "${finalUsername}" for new user ${user.id}`);
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`Generated username "${finalUsername}" for new user ${user.id}`);
+        }
       } catch (error) {
         console.error('Error generating username for new user:', error);
       }
