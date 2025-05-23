@@ -29,19 +29,19 @@ describe('LoginButtons', () => {
 
   it('renders Google and Kakao sign-in buttons', () => {
     render(<LoginButtons />);
-    expect(screen.getByText('Sign in with Google')).toBeInTheDocument();
-    expect(screen.getByText('Sign in with Kakao')).toBeInTheDocument();
+    expect(screen.getByText('Google로 로그인')).toBeInTheDocument();
+    expect(screen.getByText('카카오로 로그인')).toBeInTheDocument();
   });
 
   it('calls signIn with "google" when Google button is clicked', () => {
     render(<LoginButtons />);
-    fireEvent.click(screen.getByText('Sign in with Google'));
+    fireEvent.click(screen.getByText('Google로 로그인'));
     expect(mockSignIn).toHaveBeenCalledWith('google', { callbackUrl: '/', redirect: true });
   });
 
   it('calls signIn with "kakao" when Kakao button is clicked', () => {
     render(<LoginButtons />);
-    fireEvent.click(screen.getByText('Sign in with Kakao'));
+    fireEvent.click(screen.getByText('카카오로 로그인'));
     expect(mockSignIn).toHaveBeenCalledWith('kakao', { callbackUrl: '/', redirect: true });
   });
 
@@ -51,7 +51,7 @@ describe('LoginButtons', () => {
     mockUseSearchParams.mockReturnValueOnce(searchParams);
     
     render(<LoginButtons />);
-    expect(screen.getByText('Login Error:')).toBeInTheDocument();
+    expect(screen.getByText('로그인 오류')).toBeInTheDocument();
     expect(screen.getByText(/This account is already linked with another provider./)).toBeInTheDocument();
   });
 });
