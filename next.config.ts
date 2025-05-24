@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
       'lh3.googleusercontent.com', // Google profile images
       'avatars.githubusercontent.com', // GitHub profile images (if using GitHub OAuth)
       'k.kakaocdn.net', // Kakao profile images
-      'localhost', // Local Misskey instance
     ],
   },
 };

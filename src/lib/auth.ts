@@ -107,6 +107,27 @@ export const authOptions: NextAuthOptions = {
           },
         });
         
+        // Notify timeline about new user
+        try {
+          await fetch(`${process.env.NEXTAUTH_URL}/api/timeline/bot`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': process.env.INTERNAL_API_KEY || '',
+            },
+            body: JSON.stringify({
+              type: 'user_joined',
+              data: {
+                username: finalUsername,
+                furryName: null,
+                isNewUser: 'true'
+              }
+            })
+          });
+        } catch (error) {
+          console.error('Failed to notify about new user:', error);
+        }
+        
         // Username generated successfully
       } catch (error) {
         console.error('Error generating username for new user:', error);

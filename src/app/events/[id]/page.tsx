@@ -6,6 +6,7 @@ import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Timeline } from '@/components/timeline/Timeline';
 
 interface EventDetail {
   id: string;
@@ -529,6 +530,24 @@ const EventDetailPage: React.FC = () => {
                     </div>
                   )}
                 </div>
+              </CardContent>
+            </Card>
+
+            {/* Event Timeline */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="font-korean">이벤트 타임라인</CardTitle>
+                <CardDescription className="font-korean">
+                  이벤트 참가자들과 소통하세요
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-0">
+                <Timeline 
+                  eventId={event.id}
+                  limit={20} 
+                  showPostForm={event.userRsvpStatus === 'ATTENDING' || event.userRsvpStatus === 'CONSIDERING'}
+                  className="p-4"
+                />
               </CardContent>
             </Card>
           </div>

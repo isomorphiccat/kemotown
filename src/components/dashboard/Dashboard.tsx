@@ -5,7 +5,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MisskeyTimeline } from '@/components/timeline/MisskeyTimeline';
+import { Timeline } from '@/components/timeline/Timeline';
 
 interface Event {
   id: string;
@@ -192,7 +192,7 @@ const Dashboard: React.FC = () => {
                 </CardDescription>
               </CardHeader>
               <CardContent className="p-0">
-                <MisskeyTimeline 
+                <Timeline 
                   limit={20} 
                   showPostForm={true}
                   className="p-4"

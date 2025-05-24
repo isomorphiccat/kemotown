@@ -197,6 +197,51 @@ export async function POST(request: NextRequest) {
       }
     });
 
+    // Notify timeline about new event and create event bots
+    try {
+      const host = await prisma.user.findUnique({
+        where: { id: userId },
+        select: { username: true }
+      });
+      
+      if (host?.username) {
+        // Notify about event creation
+        await fetch(`${process.env.NEXTAUTH_URL}/api/timeline/bot`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.INTERNAL_API_KEY || '',
+          },
+          body: JSON.stringify({
+            type: 'event_created',
+            data: {
+              eventTitle: newEvent.title,
+              hostUsername: host.username,
+              eventId: newEvent.id
+            }
+          })
+        });
+
+        // Create event-specific bots
+        await fetch(`${process.env.NEXTAUTH_URL}/api/timeline/bot`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.INTERNAL_API_KEY || '',
+          },
+          body: JSON.stringify({
+            type: 'create_event_bots',
+            data: {
+              eventId: newEvent.id,
+              eventTitle: newEvent.title
+            }
+          })
+        });
+      }
+    } catch (error) {
+      console.error('Failed to notify about new event:', error);
+    }
+
     return NextResponse.json(newEvent, { status: 201 });
 
   } catch (error) {

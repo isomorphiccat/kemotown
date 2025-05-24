@@ -1,6 +1,6 @@
 # Kemotown — Next.js/React Architectural Blueprint
 
-Version 0.4 (updated with Event Management System, January 22 2025)
+Version 0.5 (updated with Custom Timeline Service and Bot System, May 24 2025)
 
 ⸻
 
@@ -103,12 +103,11 @@ src/
 | Authentication | NextAuth.js 4.24+ | OAuth authentication (Google, Kakao) |
 | State Management | React Hooks + SWR | Client state and server state management |
 | UI Components | shadcn/ui | Accessible component library |
-| Timeline Backend | Misskey (API-only) | Self-hosted timeline service for social features |
+| Timeline Backend | Custom Service | Native timeline with real-time updates via SSE |
 | Payments | Toss Payments API | Korean payment processing (planned) |
 | Deployment | Vercel | Hosting with automatic GitHub deployments |
 | Language | TypeScript 5+ | Strict type safety throughout the stack |
 | CI/CD | GitHub Actions | Automated testing, linting, and security checks |
-| Containerization | Docker Compose | Local development and deployment orchestration |
 
 ⸻
 
@@ -126,7 +125,7 @@ src/
 |-----------|-------------|----------|
 | **Welcome Section** | Personalized greeting with user's furry name | Korean localization, emoji support |
 | **My Events** | User's attending events (max 2 displayed) | RSVP status, quick event details |
-| **Community Timeline** | Misskey-powered timeline with real-time updates | Text posts, bot notifications, streaming updates |
+| **Community Timeline** | Custom timeline with real-time updates via SSE | Text posts, bot notifications, reactions, mentions |
 | **Quick Profile** | Sidebar profile overview | Avatar, username, profile link |
 | **Upcoming Events** | Sidebar event list with live data | Date/time, participant count |
 | **New Members** | Recently joined users with real data | Interest tags, profile links |
@@ -207,10 +206,11 @@ export interface EventSummary {
 | `/api/events` | GET, POST | List and create events with search/pagination | ✅ Implemented |
 | `/api/events/[id]` | GET, PUT, DELETE | Event CRUD operations with RSVP status | ✅ Implemented |
 | `/api/events/[id]/rsvp` | POST, DELETE | RSVP management with capacity control | ✅ Implemented |
-| `/api/misskey/timeline` | GET | Fetch Misskey timeline (global or channel) | ✅ Implemented |
-| `/api/misskey/notes` | POST | Create new posts in timeline | ✅ Implemented |
-| `/api/misskey/stream` | GET | Server-sent events for real-time updates | ✅ Implemented |
-| `/api/misskey/bot/notify` | POST | Send bot notifications to timeline | ✅ Implemented |
+| `/api/timeline` | GET | Fetch timeline posts with pagination | ✅ Implemented |
+| `/api/timeline/posts` | POST | Create new timeline posts | ✅ Implemented |
+| `/api/timeline/stream` | GET | Server-sent events for real-time updates | ✅ Implemented |
+| `/api/timeline/posts/[id]/reactions` | POST, DELETE | Add/remove reactions to posts | ✅ Implemented |
+| `/api/timeline/bot` | POST | Send bot notifications to timeline | ✅ Implemented |
 
 ### Planned API Endpoints
 
@@ -232,43 +232,59 @@ export interface EventSummary {
 
 ⸻
 
-## 9. Misskey Timeline Integration
+## 9. Custom Timeline Service
 
 ### 9.1 Architecture
-Kemotown integrates Misskey as an API-only timeline backend service:
-- **Deployment**: Runs alongside Next.js in Docker Compose
-- **Database**: Separate PostgreSQL schema (`misskey_kemotown`)
-- **Access**: Internal API-only access via Nginx reverse proxy
-- **Frontend**: Custom React components maintain Kemotown's UI design
+Kemotown implements a lightweight, event-centric timeline service that:
+- **Native Integration**: Built directly into the Next.js application
+- **Real-time Updates**: Server-Sent Events (SSE) for Vercel compatibility
+- **Database**: Uses existing PostgreSQL with Prisma ORM
+- **Frontend**: Custom React components with Naver Band-inspired UI
 
 ### 9.2 Bot System
-Generalized bot system for automated notifications:
+Generalized bot system with factory pattern for automated notifications:
 - **System Bot**: Global announcements (user joins, events created)
-- **Welcome Bot**: Greets new members
+- **Welcome Bot**: Greets new members with personalized messages
 - **Event Bots**: Per-event notification, moderation, and helper bots
-- **Factory Pattern**: Dynamic bot creation with unique identities
+- **Template System**: Dynamic message generation with variable substitution
+- **Separate Model**: BotUser table with foreign key relationship to TimelinePost
+- **Authentication**: Internal API secured with INTERNAL_API_KEY for bot operations
 
 ### 9.3 Timeline Features
 | Feature | Global Timeline | Event Timeline | Status |
 |---------|----------------|----------------|--------|
-| Text Posts | ✅ | 🔄 Planned | Users can post text |
-| Real-time Updates | ✅ | 🔄 Planned | SSE streaming |
-| Bot Notifications | ✅ | 🔄 Planned | Automated posts |
-| User Mentions | 🔄 Planned | 🔄 Planned | @username support |
-| Reactions | 🔄 Planned | 🔄 Planned | Emoji reactions |
-| Media Uploads | 🔄 Planned | 🔄 Planned | Images/videos |
+| Text Posts | ✅ Implemented | ✅ Implemented | Users can post text up to 500 characters |
+| Real-time Updates | ✅ Implemented | ✅ Implemented | SSE streaming for instant updates |
+| Bot Notifications | ✅ Implemented | ✅ Implemented | Automated posts for system events |
+| User Mentions | ✅ Implemented | ✅ Implemented | @username support with links |
+| Reactions | ✅ Implemented | ✅ Implemented | 5 emoji reactions per post |
+| Media Uploads | 🔄 Planned | 🔄 Planned | Images/videos support |
 
 ### 9.4 Data Models
 ```prisma
-model UserMisskeyAccount {
-  userId        String   @unique
-  misskeyUserId String
-  apiToken      String
+model TimelinePost {
+  id            String      @id @default(cuid())
+  content       String      @db.Text
+  userId        String
+  eventId       String?     // null for global, eventId for event-specific
+  channelType   ChannelType @default(GLOBAL)
+  isBot         Boolean     @default(false)
+  botType       BotType?
+  createdAt     DateTime    @default(now())
+  
+  // Relations
+  user          User        @relation(...)
+  event         Event?      @relation(...)
+  reactions     Reaction[]
+  mentions      Mention[]
 }
 
-model EventMisskeyChannel {
-  eventId   String   @unique
-  channelId String
+model BotUser {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  displayName   String
+  botType       BotType
+  eventId       String?  // null for system bots
 }
 ```
 
@@ -346,8 +362,7 @@ model EventMisskeyChannel {
 - `NEXTAUTH_SECRET`: Secure random string for JWT signing
 - `GOOGLE_CLIENT_ID/SECRET`: OAuth provider credentials
 - `KAKAO_CLIENT_ID/SECRET`: Korean OAuth provider (planned)
-- `MISSKEY_API_URL`: Internal Misskey API endpoint
-- `MISSKEY_ADMIN_TOKEN`: Misskey admin authentication token
+- `INTERNAL_API_KEY`: Internal API key for bot notifications
 
 ### 14.5 Monitoring & Analytics
 - **Vercel Analytics**: Performance and usage metrics
@@ -395,16 +410,16 @@ model EventMisskeyChannel {
 7. **Real API Integration**: Dashboard timeline, events, and users with live data
 8. **CI/CD Pipeline**: Comprehensive GitHub Actions workflows for quality assurance
 9. **Deployment**: Vercel hosting with Railway PostgreSQL and automatic deployments
-10. **Misskey Timeline Integration**: 
-    - Docker Compose setup with Misskey API-only instance
-    - Custom React timeline component with real-time updates
-    - Generalized bot system for automated notifications
-    - Database schema for user/event Misskey associations
+10. **Custom Timeline Service**: 
+    - Native timeline implementation with PostgreSQL/Prisma
+    - React component with SSE for real-time updates
+    - Generalized bot system with factory pattern
+    - Support for global and per-event timeline channels
+    - Reactions and mentions functionality
 
 ### 17.2 In Progress 🔄
 1. **Korean OAuth**: Kakao provider integration for local user adoption
 2. **File Upload System**: Event cover images and profile pictures
-3. **Per-Event Timeline Channels**: Implement Misskey channels for event-specific timelines
 
 ### 17.3 Next Priorities 🎯
 1. **Enhanced Event Features** (High Priority)
