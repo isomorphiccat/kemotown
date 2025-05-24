@@ -25,7 +25,15 @@ CREATE TABLE "EventMisskeyChannel" (
 CREATE UNIQUE INDEX "UserMisskeyAccount_userId_key" ON "UserMisskeyAccount"("userId");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "UserMisskeyAccount_misskeyUserId_key"
+  ON "UserMisskeyAccount"("misskeyUserId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "EventMisskeyChannel_eventId_key" ON "EventMisskeyChannel"("eventId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "EventMisskeyChannel_channelId_key"
+  ON "EventMisskeyChannel"("channelId");
 
 -- AddForeignKey
 ALTER TABLE "UserMisskeyAccount" ADD CONSTRAINT "UserMisskeyAccount_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

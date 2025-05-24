@@ -128,6 +128,14 @@ export const Timeline: React.FC<TimelineProps> = ({
       eventSource.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
+
+          // Filter messages for the correct channel
+          if (eventId && data.channelType === 'event' && data.post?.event?.id !== eventId) {
+            return; // ignore posts from other events
+          }
+          if (!eventId && data.channelType !== 'global') {
+            return; // ignore event posts on the global feed
+          }
           
           if (data.type === 'new_post') {
             // Add new post to the beginning of the list

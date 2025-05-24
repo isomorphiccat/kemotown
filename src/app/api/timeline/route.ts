@@ -23,7 +23,11 @@ export async function GET(request: NextRequest) {
     // Get query parameters
     const searchParams = request.nextUrl.searchParams;
     const eventId = searchParams.get('eventId') || undefined;
-    const limit = parseInt(searchParams.get('limit') || '20', 10);
+    const rawLimit = Number(searchParams.get('limit'));
+    const limit =
+      Number.isFinite(rawLimit) && rawLimit > 0
+        ? Math.min(rawLimit, 50)
+        : 20;
     const cursor = searchParams.get('cursor') || undefined;
 
     // Get current user from session

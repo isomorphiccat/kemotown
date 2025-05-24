@@ -450,6 +450,13 @@ model BotUser {
     - Generalized bot system with factory pattern
     - Support for global and per-event timeline channels
     - Reactions and mentions functionality
+    - **Security Hardening (2025-05-24)**:
+      - Fixed API parameter type safety and validation issues
+      - Enhanced environment variable safety checks
+      - Improved SSE connection management and memory leak prevention
+      - Added comprehensive input validation with discriminated unions
+      - Strengthened bot API authentication and access controls
+      - Performance optimizations and database query improvements
 
 ### 17.2 In Progress 🔄
 1. **Korean OAuth**: Kakao provider integration for local user adoption

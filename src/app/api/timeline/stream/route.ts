@@ -50,40 +50,64 @@ export async function GET(request: NextRequest) {
       
       // Send initial connection message
       const encoder = new TextEncoder();
-      controller.enqueue(
-        encoder.encode(`data: ${JSON.stringify({ type: 'connected', clientId })}\n\n`)
-      );
+      try {
+        controller.enqueue(
+          encoder.encode(`data: ${JSON.stringify({ type: 'connected', clientId })}\n\n`)
+        );
+      } catch (error) {
+        console.error(`Failed to send initial message to client ${clientId}:`, error);
+        clients.delete(clientId);
+        controller.close();
+        return;
+      }
       
       // Set up ping interval to keep connection alive
       const pingInterval = setInterval(() => {
         try {
+          if (!clients.has(clientId)) {
+            clearInterval(pingInterval);
+            return;
+          }
           controller.enqueue(encoder.encode(': ping\n\n'));
-        } catch {
+        } catch (error) {
+          console.error(`Ping failed for client ${clientId}:`, error);
           clearInterval(pingInterval);
           clients.delete(clientId);
+          try {
+            controller.close();
+          } catch (closeError) {
+            console.error(`Failed to close controller for client ${clientId}:`, closeError);
+          }
         }
       }, 30000); // Ping every 30 seconds
       
-      // Set up connection timeout
-      const connectionTimeout = setTimeout(() => {
+      // Store cleanup function for this client
+      const cleanup = () => {
         clearInterval(pingInterval);
         clients.delete(clientId);
-        try {
-          controller.close();
-        } catch {
-          // Connection already closed
+      };
+
+      // Set up connection timeout
+      const connectionTimeout = setTimeout(() => {
+        if (clients.has(clientId)) {
+          console.log(`Closing long-running connection for client ${clientId}`);
+          cleanup();
+          try {
+            controller.close();
+          } catch (error) {
+            console.error(`Failed to close long-running connection for client ${clientId}:`, error);
+          }
         }
       }, MAX_CONNECTION_DURATION);
       
       // Clean up on close
       request.signal.addEventListener('abort', () => {
-        clearInterval(pingInterval);
+        cleanup();
         clearTimeout(connectionTimeout);
-        clients.delete(clientId);
         try {
           controller.close();
-        } catch {
-          // Connection already closed
+        } catch (error) {
+          console.error(`Failed to close controller for client ${clientId}:`, error);
         }
       });
     },

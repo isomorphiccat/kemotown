@@ -18,7 +18,7 @@ CREATE TABLE "TimelinePost" (
     "isBot" BOOLEAN NOT NULL DEFAULT false,
     "botType" "BotType",
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "TimelinePost_pkey" PRIMARY KEY ("id")
 );
@@ -55,7 +55,7 @@ CREATE TABLE "BotUser" (
     "eventId" TEXT,
     "isActive" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "BotUser_pkey" PRIMARY KEY ("id")
 );

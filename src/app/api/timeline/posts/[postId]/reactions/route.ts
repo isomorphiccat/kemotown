@@ -19,9 +19,9 @@ const reactionSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ postId: string }> }
+  { params }: { params: { postId: string } }
 ) {
-  const { postId } = await params;
+  const { postId } = params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -41,6 +41,15 @@ export async function POST(
     // Parse and validate request body
     const body = await request.json();
     const { emoji } = reactionSchema.parse(body);
+
+    // Ensure the post exists
+    const post = await prisma.timelinePost.findUnique({
+      where: { id: postId },
+      select: { id: true }
+    });
+    if (!post) {
+      return NextResponse.json({ error: 'Post not found' }, { status: 404 });
+    }
 
     // Initialize timeline service
     const timelineService = new TimelineService(prisma);
@@ -70,9 +79,9 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ postId: string }> }
+  { params }: { params: { postId: string } }
 ) {
-  const { postId } = await params;
+  const { postId } = params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {

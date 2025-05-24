@@ -12,10 +12,47 @@ import { z } from 'zod';
 import { initializeBots } from '@/lib/timeline/initialize-bots';
 
 // Input validation schema
-const botNotificationSchema = z.object({
-  type: z.enum(['user_joined', 'event_created', 'event_rsvp', 'welcome', 'create_event_bots']),
-  data: z.record(z.string())
-});
+const botNotificationSchema = z.discriminatedUnion('type', [
+  z.object({
+    type: z.literal('user_joined'),
+    data: z.object({
+      username: z.string(),
+      furryName: z.string().nullable(),
+      isNewUser: z.boolean()
+    })
+  }),
+  z.object({
+    type: z.literal('event_created'),
+    data: z.object({
+      eventTitle: z.string(),
+      hostUsername: z.string(),
+      eventId: z.string()
+    })
+  }),
+  z.object({
+    type: z.literal('event_rsvp'),
+    data: z.object({
+      username: z.string(),
+      eventTitle: z.string(),
+      status: z.string(),
+      eventId: z.string()
+    })
+  }),
+  z.object({
+    type: z.literal('welcome'),
+    data: z.object({
+      eventId: z.string(),
+      username: z.string()
+    })
+  }),
+  z.object({
+    type: z.literal('create_event_bots'),
+    data: z.object({
+      eventId: z.string(),
+      eventTitle: z.string()
+    })
+  })
+]);
 
 export async function POST(request: NextRequest) {
   try {
@@ -61,22 +98,26 @@ export async function POST(request: NextRequest) {
         );
         break;
 
-      case 'create_event_bots':
+      case 'create_event_bots': {
         // Create event-specific bots for the event
         await botSystem.createEventBot(data.eventId, BotType.EVENT_NOTIFY);
         await botSystem.createEventBot(data.eventId, BotType.EVENT_HELPER);
         
         // Post welcome message to event timeline
-        const eventNotifyBot = await botSystem.getOrCreateBot(BotType.EVENT_NOTIFY, data.eventId);
+        const eventNotifyBot = await botSystem.getOrCreateBot(
+          BotType.EVENT_NOTIFY,
+          data.eventId
+        );
         await eventNotifyBot.postWithTemplate(
           '🎉 Welcome to the {eventTitle} event timeline!\n\n' +
-          'This is where you can chat with other attendees, share updates, and ask questions. ' +
-          'Please keep discussions relevant to this event and be respectful to all participants. ' +
-          'Have fun! 💖',
+            'This is where you can chat with other attendees, share updates, and ask questions. ' +
+            'Please keep discussions relevant to this event and be respectful to all participants. ' +
+            'Have fun! 💖',
           { eventTitle: data.eventTitle },
           data.eventId
         );
         break;
+      }
 
       case 'event_rsvp':
         await botSystem.notifyEventRsvp(

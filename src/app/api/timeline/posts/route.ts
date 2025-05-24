@@ -24,13 +24,9 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Get user from database
-    const user = await prisma.user.findUnique({
-      where: { email: session.user.email },
-      select: { id: true }
-    });
-
-    if (!user) {
+    // Use the user ID from the session to avoid an extra database round-trip
+    const userId = (session.user as { id?: string }).id;
+    if (!userId) {
       return NextResponse.json({ error: 'User not found' }, { status: 404 });
     }
 
@@ -40,18 +36,29 @@ export async function POST(request: NextRequest) {
 
     // If posting to an event, verify user is attending
     if (validatedData.eventId) {
+      // Ensure the event exists
+      const event = await prisma.event.findUnique({
+        where: { id: validatedData.eventId }
+      });
+      if (!event) {
+        return NextResponse.json(
+          { error: 'Event not found' },
+          { status: 404 }
+        );
+      }
+
       const rsvp = await prisma.rSVP.findUnique({
         where: {
           userId_eventId: {
-            userId: user.id,
+            userId: userId,
             eventId: validatedData.eventId
           }
         }
       });
 
-      if (!rsvp || rsvp.status === 'NOT_ATTENDING') {
+      if (!rsvp || rsvp.status !== 'ATTENDING') {
         return NextResponse.json(
-          { error: 'You must RSVP to this event to post' },
+          { error: 'You must be attending this event to post' },
           { status: 403 }
         );
       }
@@ -63,7 +70,7 @@ export async function POST(request: NextRequest) {
     // Create the post
     const post = await timelineService.createPost({
       content: validatedData.content,
-      userId: user.id,
+      userId: userId,
       eventId: validatedData.eventId
     });
 

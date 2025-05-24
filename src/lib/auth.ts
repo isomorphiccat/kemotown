@@ -109,18 +109,25 @@ export const authOptions: NextAuthOptions = {
         
         // Notify timeline about new user
         try {
+          if (!process.env.NEXTAUTH_URL || !process.env.INTERNAL_API_KEY) {
+            console.warn(
+              'Missing NEXTAUTH_URL or INTERNAL_API_KEY, skipping bot notification'
+            );
+            return;
+          }
+
           await fetch(`${process.env.NEXTAUTH_URL}/api/timeline/bot`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
-              'x-api-key': process.env.INTERNAL_API_KEY || '',
+              'x-api-key': process.env.INTERNAL_API_KEY,
             },
             body: JSON.stringify({
               type: 'user_joined',
               data: {
                 username: finalUsername,
                 furryName: null,
-                isNewUser: 'true'
+                isNewUser: true
               }
             })
           });

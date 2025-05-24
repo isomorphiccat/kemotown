@@ -92,6 +92,10 @@ export class TimelineService {
     if (input.userId && input.botUserId) {
       throw new Error('Cannot specify both userId and botUserId');
     }
+    const isBotAuthor = Boolean(input.botUserId);
+    if ((input.isBot ?? isBotAuthor) !== isBotAuthor) {
+      throw new Error('`isBot` flag must reflect whether the author is a botUser');
+    }
 
     // Validate event exists if eventId is provided
     if (input.eventId) {
@@ -269,15 +273,22 @@ export class TimelineService {
       throw new Error('Access denied: You must RSVP to this event to react to posts');
     }
 
-    await this.prisma.reaction.delete({
-      where: {
-        postId_userId_emoji: {
-          postId,
-          userId,
-          emoji
+    try {
+      await this.prisma.reaction.delete({
+        where: {
+          postId_userId_emoji: {
+            postId,
+            userId,
+            emoji
+          }
         }
+      });
+    } catch (error: any) {
+      // Ignore P2025 error (record not found) - reaction already doesn't exist
+      if (error.code !== 'P2025') {
+        throw error;
       }
-    });
+    }
   }
 
   /**

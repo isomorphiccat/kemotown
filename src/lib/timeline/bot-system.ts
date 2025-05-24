@@ -89,6 +89,9 @@ export class BotSystem {
     }
 
     const config = BotSystem.BOT_CONFIGS[type];
+    if (!config) {
+      throw new Error(`No bot configuration found for BotType "${type}"`);
+    }
     const botUsername = eventId 
       ? `${config.username}_${eventId.substring(0, 8)}`
       : config.username;
