@@ -26,6 +26,43 @@ export async function GET(request: NextRequest) {
     const limit = parseInt(searchParams.get('limit') || '20', 10);
     const cursor = searchParams.get('cursor') || undefined;
 
+    // Get current user from session
+    const currentUser = await prisma.user.findUnique({
+      where: { email: session.user.email }
+    });
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Check event timeline access if eventId is provided
+    if (eventId) {
+      const event = await prisma.event.findUnique({
+        where: { id: eventId },
+        include: {
+          rsvps: {
+            where: {
+              userId: currentUser.id,
+              status: {
+                in: ['ATTENDING', 'CONSIDERING']
+              }
+            }
+          }
+        }
+      });
+
+      if (!event) {
+        return NextResponse.json({ error: 'Event not found' }, { status: 404 });
+      }
+
+      // Check if user has access to event timeline (must be attending or considering)
+      if (!event.rsvps || event.rsvps.length === 0) {
+        return NextResponse.json({ 
+          error: 'Access denied. You must RSVP to this event to view its timeline.' 
+        }, { status: 403 });
+      }
+    }
+
     // Initialize timeline service
     const timelineService = new TimelineService(prisma);
 

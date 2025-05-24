@@ -93,6 +93,17 @@ export class TimelineService {
       throw new Error('Cannot specify both userId and botUserId');
     }
 
+    // Validate event exists if eventId is provided
+    if (input.eventId) {
+      const eventExists = await this.prisma.event.findUnique({
+        where: { id: input.eventId },
+        select: { id: true }
+      });
+      if (!eventExists) {
+        throw new Error('Event not found');
+      }
+    }
+
     // Create the post with mentions
     const post = await this.prisma.timelinePost.create({
       data: {
@@ -180,8 +191,45 @@ export class TimelineService {
    * Add a reaction to a post
    */
   async addReaction(postId: string, userId: string, emoji: string): Promise<void> {
-    await this.prisma.reaction.create({
-      data: {
+    // Verify the post exists and user has access to it
+    const post = await this.prisma.timelinePost.findUnique({
+      where: { id: postId },
+      include: {
+        event: {
+          include: {
+            rsvps: {
+              where: {
+                userId: userId,
+                status: {
+                  in: ['ATTENDING', 'CONSIDERING']
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!post) {
+      throw new Error('Post not found');
+    }
+
+    // Check access for event timeline posts
+    if (post.eventId && (!post.event?.rsvps || post.event.rsvps.length === 0)) {
+      throw new Error('Access denied: You must RSVP to this event to react to posts');
+    }
+
+    // Use upsert to prevent duplicate constraint errors
+    await this.prisma.reaction.upsert({
+      where: {
+        postId_userId_emoji: {
+          postId,
+          userId,
+          emoji
+        }
+      },
+      update: {}, // No update needed if it exists
+      create: {
         postId,
         userId,
         emoji
@@ -193,6 +241,34 @@ export class TimelineService {
    * Remove a reaction from a post
    */
   async removeReaction(postId: string, userId: string, emoji: string): Promise<void> {
+    // Verify the post exists and user has access to it
+    const post = await this.prisma.timelinePost.findUnique({
+      where: { id: postId },
+      include: {
+        event: {
+          include: {
+            rsvps: {
+              where: {
+                userId: userId,
+                status: {
+                  in: ['ATTENDING', 'CONSIDERING']
+                }
+              }
+            }
+          }
+        }
+      }
+    });
+
+    if (!post) {
+      throw new Error('Post not found');
+    }
+
+    // Check access for event timeline posts
+    if (post.eventId && (!post.event?.rsvps || post.event.rsvps.length === 0)) {
+      throw new Error('Access denied: You must RSVP to this event to react to posts');
+    }
+
     await this.prisma.reaction.delete({
       where: {
         postId_userId_emoji: {

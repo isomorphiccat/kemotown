@@ -35,11 +35,25 @@ export async function GET(request: NextRequest) {
   };
 
   try {
-    const response = await fetch(`${process.env.NEXTAUTH_URL}/api/timeline/bot`, {
+    const apiKey = process.env.INTERNAL_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json({
+        error: 'INTERNAL_API_KEY not configured'
+      }, { status: 500 });
+    }
+
+    const baseUrl = process.env.NEXTAUTH_URL;
+    if (!baseUrl) {
+      return NextResponse.json({
+        error: 'NEXTAUTH_URL not configured'
+      }, { status: 500 });
+    }
+
+    const response = await fetch(`${baseUrl}/api/timeline/bot`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': process.env.INTERNAL_API_KEY || 'test-key',
+        'x-api-key': apiKey,
       },
       body: JSON.stringify({
         type,

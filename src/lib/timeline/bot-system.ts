@@ -133,9 +133,36 @@ export class BotSystem {
         variables: Record<string, string>, 
         postEventId?: string
       ) => {
+        // Validate template is from a trusted source
+        const allowedTemplates = [
+          '🎉 {displayName} joined Kemotown! Welcome to our community!',
+          '📅 New event: "{eventTitle}" by @{hostUsername}\n🔗 [View Event](/events/{eventId})',
+          '{emoji} @{username} {action} "{eventTitle}"',
+          'Hello {displayName}! 👋 Welcome to Kemotown! 🦊🐺🐱\n\nFeel free to introduce yourself, check out upcoming events, or create your own! If you have any questions, our community is here to help. Enjoy your stay! 💖',
+          '🎉 Welcome to the {eventTitle} event timeline!\n\n' +
+          'This is where you can chat with other attendees, share updates, and ask questions. ' +
+          'Please keep discussions relevant to this event and be respectful to all participants. ' +
+          'Have fun! 💖'
+        ];
+        
+        if (!allowedTemplates.includes(template)) {
+          throw new Error('Unauthorized template used');
+        }
+        
         let content = template;
         for (const [key, value] of Object.entries(variables)) {
-          content = content.replace(new RegExp(`{${key}}`, 'g'), value);
+          // Sanitize variable values to prevent injection
+          const sanitizedValue = value.replace(/[<>&"']/g, (char) => {
+            const entities: Record<string, string> = {
+              '<': '&lt;',
+              '>': '&gt;',
+              '&': '&amp;',
+              '"': '&quot;',
+              "'": '&#x27;'
+            };
+            return entities[char] || char;
+          });
+          content = content.replace(new RegExp(`{${key}}`, 'g'), sanitizedValue);
         }
         await bot.post(content, postEventId);
       },

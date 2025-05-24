@@ -391,6 +391,40 @@ model BotUser {
 
 ⸻
 
+## 16.1 Security Architecture
+
+**Authentication & Authorization**
+- Internal API authentication using INTERNAL_API_KEY for bot operations
+- Session-based authentication via NextAuth.js with OAuth providers
+- Event timeline access controls (RSVP validation for attendees/considering users)
+- Real-time connection limits and user-based rate limiting
+
+**Input Validation & Sanitization**
+- Zod schema validation for all API endpoints with discriminated unions
+- Template injection prevention with allowlisted bot message templates
+- HTML entity encoding for user-generated content in bot messages
+- Post and reaction access validation at the service layer
+
+**Real-time Security (SSE)**
+- Connection limits: maximum 5 connections per user
+- Connection duration limits: 24-hour maximum lifespan
+- Automatic cleanup of stale connections with periodic maintenance
+- Client-side reconnection logic with exponential backoff (max 5 attempts)
+
+**Bot System Security**
+- Strict template allowlisting to prevent injection attacks
+- Concurrent initialization protection using Promise-based guards
+- Event existence validation before bot operations
+- Separate BotUser model isolation from regular User authentication
+
+**Data Integrity**
+- Event timeline restricted posting (RSVP validation required)
+- Reaction ownership verification and duplicate prevention via upserts
+- Post authorship validation (userId XOR botUserId constraints)
+- Event existence checks before timeline operations
+
+⸻
+
 ## 17. Implementation Status & Next Steps
 
 ### 17.1 Completed ✅

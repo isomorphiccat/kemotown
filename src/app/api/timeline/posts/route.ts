@@ -51,7 +51,7 @@ export async function POST(request: NextRequest) {
 
       if (!rsvp || rsvp.status === 'NOT_ATTENDING') {
         return NextResponse.json(
-          { error: 'You must be attending this event to post' },
+          { error: 'You must RSVP to this event to post' },
           { status: 403 }
         );
       }

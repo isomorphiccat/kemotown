@@ -2,8 +2,31 @@
  * Timeline broadcast utilities for real-time updates
  */
 
-// Store active connections
-export const clients = new Map<string, ReadableStreamDefaultController>();
+// Store active connections with metadata
+export interface ClientConnection {
+  controller: ReadableStreamDefaultController;
+  connectedAt: number;
+  userEmail: string;
+}
+
+export const clients = new Map<string, ClientConnection>();
+
+// Cleanup old connections (older than 24 hours)
+export function cleanupOldConnections() {
+  const now = Date.now();
+  const maxAge = 24 * 60 * 60 * 1000; // 24 hours
+  
+  for (const [clientId, connection] of clients.entries()) {
+    if (now - connection.connectedAt > maxAge) {
+      try {
+        connection.controller.close();
+      } catch {
+        // Already closed
+      }
+      clients.delete(clientId);
+    }
+  }
+}
 
 export interface TimelinePostBroadcast {
   id: string;
@@ -59,9 +82,9 @@ export function broadcastPost(post: TimelinePostBroadcast, channelType: 'global'
   const message = encoder.encode(`data: ${data}\n\n`);
   
   // Send to all connected clients
-  for (const [clientId, controller] of clients.entries()) {
+  for (const [clientId, connection] of clients.entries()) {
     try {
-      controller.enqueue(message);
+      connection.controller.enqueue(message);
     } catch {
       // Remove disconnected clients
       clients.delete(clientId);
@@ -84,9 +107,9 @@ export function broadcastReaction(postId: string, reaction: ReactionBroadcast, a
   const message = encoder.encode(`data: ${data}\n\n`);
   
   // Send to all connected clients
-  for (const [clientId, controller] of clients.entries()) {
+  for (const [clientId, connection] of clients.entries()) {
     try {
-      controller.enqueue(message);
+      connection.controller.enqueue(message);
     } catch {
       // Remove disconnected clients
       clients.delete(clientId);

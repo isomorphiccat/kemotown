@@ -19,14 +19,16 @@ const botNotificationSchema = z.object({
 
 export async function POST(request: NextRequest) {
   try {
-    // This is an internal API, so we should verify it's called from our own system
-    // In production, you might want to add an API key or similar authentication
+    // This is an internal API - require API key authentication in all environments
     const apiKey = request.headers.get('x-api-key');
     const expectedKey = process.env.INTERNAL_API_KEY;
     
-    // In development, allow requests without API key if INTERNAL_API_KEY is not set
-    // In production, require API key
-    if (process.env.NODE_ENV === 'production' && expectedKey && apiKey !== expectedKey) {
+    if (!expectedKey) {
+      console.error('INTERNAL_API_KEY environment variable is not set');
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 });
+    }
+    
+    if (!apiKey || apiKey !== expectedKey) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
     

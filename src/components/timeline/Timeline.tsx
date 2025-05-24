@@ -64,6 +64,7 @@ export const Timeline: React.FC<TimelineProps> = ({
   const [postContent, setPostContent] = useState('');
   const [nextCursor, setNextCursor] = useState<string | undefined>();
   const [loadingMore, setLoadingMore] = useState(false);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const eventSourceRef = useRef<EventSource | null>(null);
 
   // Fetch initial posts
@@ -94,52 +95,83 @@ export const Timeline: React.FC<TimelineProps> = ({
     }
   }, [eventId, limit]);
 
-  // Set up real-time updates
+  // Fetch current user ID
+  useEffect(() => {
+    if (session?.user?.email) {
+      fetch('/api/users/me')
+        .then(res => res.json())
+        .then(data => setCurrentUserId(data.id))
+        .catch(err => console.error('Failed to fetch user ID:', err));
+    }
+  }, [session?.user?.email]);
+
+  // Set up real-time updates with reconnection
   useEffect(() => {
     fetchPosts();
 
-    // Set up SSE connection
-    const params = new URLSearchParams();
-    if (eventId) params.append('eventId', eventId);
-    
-    const eventSource = new EventSource(`/api/timeline/stream?${params}`);
-    eventSourceRef.current = eventSource;
+    let reconnectAttempts = 0;
+    const maxReconnectAttempts = 5;
+    const reconnectDelay = 2000; // 2 seconds
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        
-        if (data.type === 'new_post') {
-          // Add new post to the beginning of the list
-          setPosts(prev => [data.post, ...prev]);
-        } else if (data.type === 'reaction_update') {
-          // Update reactions for a specific post
-          setPosts(prev => prev.map(post => {
-            if (post.id === data.postId) {
-              const updatedReactions = data.action === 'add'
-                ? [...post.reactions, data.reaction]
-                : post.reactions.filter(r => 
-                    !(r.userId === data.reaction.userId && r.emoji === data.reaction.emoji)
-                  );
-              
-              return {
-                ...post,
-                reactions: updatedReactions,
-                reactionCount: updatedReactions.length
-              };
-            }
-            return post;
-          }));
+    const setupSSE = () => {
+      const params = new URLSearchParams();
+      if (eventId) params.append('eventId', eventId);
+      
+      const eventSource = new EventSource(`/api/timeline/stream?${params}`);
+      eventSourceRef.current = eventSource;
+
+      eventSource.onopen = () => {
+        console.log('SSE connection opened');
+        reconnectAttempts = 0; // Reset on successful connection
+      };
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          
+          if (data.type === 'new_post') {
+            // Add new post to the beginning of the list
+            setPosts(prev => [data.post, ...prev]);
+          } else if (data.type === 'reaction_update') {
+            // Update reactions for a specific post
+            setPosts(prev => prev.map(post => {
+              if (post.id === data.postId) {
+                const updatedReactions = data.action === 'add'
+                  ? [...post.reactions, data.reaction]
+                  : post.reactions.filter(r => 
+                      !(r.userId === data.reaction.userId && r.emoji === data.reaction.emoji)
+                    );
+                
+                return {
+                  ...post,
+                  reactions: updatedReactions,
+                  reactionCount: updatedReactions.length
+                };
+              }
+              return post;
+            }));
+          }
+        } catch (error) {
+          console.error('Error parsing SSE data:', error);
         }
-      } catch (error) {
-        console.error('Error parsing SSE data:', error);
-      }
+      };
+
+      eventSource.onerror = (error) => {
+        console.error('SSE error:', error);
+        eventSource.close();
+        
+        // Attempt to reconnect if we haven't exceeded max attempts
+        if (reconnectAttempts < maxReconnectAttempts) {
+          reconnectAttempts++;
+          console.log(`Attempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts}) in ${reconnectDelay}ms...`);
+          setTimeout(setupSSE, reconnectDelay);
+        } else {
+          console.error('Max reconnection attempts reached. Real-time updates disabled.');
+        }
+      };
     };
 
-    eventSource.onerror = (error) => {
-      console.error('SSE error:', error);
-      eventSource.close();
-    };
+    setupSSE();
 
     return () => {
       if (eventSourceRef.current) {
@@ -340,7 +372,7 @@ export const Timeline: React.FC<TimelineProps> = ({
                   <div className="flex items-center space-x-4 mt-3">
                     {['👍', '❤️', '😂', '😮', '😢'].map((emoji) => {
                       const userReaction = post.reactions.find(
-                        r => r.emoji === emoji && r.userId === session?.user?.email
+                        r => r.emoji === emoji && r.userId === currentUserId
                       );
                       const count = post.reactions.filter(r => r.emoji === emoji).length;
 
