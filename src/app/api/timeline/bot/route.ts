@@ -84,9 +84,9 @@ export async function POST(request: NextRequest) {
     // Handle different notification types
     switch (type) {
       case 'user_joined':
-        await botSystem.notifyUserJoined(data.username, data.furryName);
-        if (data.isNewUser === 'true') {
-          await botSystem.welcomeUser(data.username, data.furryName);
+        await botSystem.notifyUserJoined(data.username, data.furryName ?? undefined);
+        if (data.isNewUser) {
+          await botSystem.welcomeUser(data.username, data.furryName ?? undefined);
         }
         break;
 
@@ -129,7 +129,7 @@ export async function POST(request: NextRequest) {
         break;
 
       case 'welcome':
-        await botSystem.welcomeUser(data.username, data.furryName);
+        await botSystem.welcomeUser(data.username);
         break;
 
       default:

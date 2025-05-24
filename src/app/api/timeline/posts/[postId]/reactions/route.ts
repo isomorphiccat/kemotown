@@ -19,9 +19,9 @@ const reactionSchema = z.object({
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: { postId: string } }
+  { params }: { params: Promise<{ postId: string }> }
 ) {
-  const { postId } = params;
+  const { postId } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
@@ -79,9 +79,9 @@ export async function POST(
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { postId: string } }
+  { params }: { params: Promise<{ postId: string }> }
 ) {
-  const { postId } = params;
+  const { postId } = await params;
   try {
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
