@@ -6,11 +6,19 @@ import { prisma } from './db';
 import { uniqueNamesGenerator, adjectives, animals, Config } from 'unique-names-generator';
 
 export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET,
   adapter: PrismaAdapter(prisma),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+      authorization: {
+        params: {
+          prompt: "consent",
+          access_type: "offline",
+          response_type: "code"
+        }
+      }
     }),
     KakaoProvider({
       clientId: process.env.KAKAO_CLIENT_ID!,
@@ -47,9 +55,18 @@ export const authOptions: NextAuthOptions = {
       else if (new URL(url).origin === baseUrl) return url;
       return baseUrl;
     },
-    async signIn() {
-      // Allow all sign-ins
-      return true;
+    async signIn({ user, account }) {
+      // Only allow OAuth sign-ins from Google and Kakao
+      if (account?.provider === 'google' || account?.provider === 'kakao') {
+        // Verify user has an email
+        if (!user?.email) {
+          return false;
+        }
+        return true;
+      }
+      
+      // Reject other sign-in methods
+      return false;
     },
   },
   pages: {
@@ -90,29 +107,14 @@ export const authOptions: NextAuthOptions = {
           },
         });
         
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`Generated username "${finalUsername}" for new user ${user.id}`);
-        }
+        // Username generated successfully
       } catch (error) {
         console.error('Error generating username for new user:', error);
       }
     },
   },
-  // Enable debug for troubleshooting
-  debug: process.env.NODE_ENV === 'development',
-  logger: {
-    error(code, metadata) {
-      console.error('NextAuth Error:', code, metadata);
-    },
-    warn(code) {
-      console.warn('NextAuth Warning:', code);
-    },
-    debug(code, metadata) {
-      if (process.env.NODE_ENV === 'development') {
-        console.log('NextAuth Debug:', code, metadata);
-      }
-    },
-  },
+  // Only enable debug in development
+  debug: false,
 };
 
 export default NextAuth(authOptions);
