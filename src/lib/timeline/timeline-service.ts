@@ -283,11 +283,13 @@ export class TimelineService {
           }
         }
       });
-    } catch (error: any) {
+    } catch (error) {
       // Ignore P2025 error (record not found) - reaction already doesn't exist
-      if (error.code !== 'P2025') {
-        throw error;
+      if (error instanceof Error && 'code' in error && error.code === 'P2025') {
+        // Reaction doesn't exist, which is fine for a delete operation
+        return;
       }
+      throw error;
     }
   }
 
