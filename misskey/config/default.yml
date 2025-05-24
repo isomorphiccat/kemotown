@@ -1,0 +1,48 @@
+# Misskey Configuration for Kemotown Integration
+# This configuration runs Misskey in API-only mode
+
+url: http://localhost:3001/
+
+# Port and TLS settings
+port: 3000
+
+# PostgreSQL configuration
+db:
+  host: postgres
+  port: 5432
+  db: misskey_kemotown
+  user: postgres
+  pass: postgres
+
+# Redis configuration  
+redis:
+  host: redis
+  port: 6379
+
+# ID generation
+id: 'aidx'
+
+# Disable federation - we're using this as an internal timeline service
+federation:
+  enabled: false
+
+# Proxy settings
+proxyBypassHosts: []
+
+# Media settings
+mediaProxy: false
+
+# Sign to ActivityPub - disabled since federation is off
+signToActivityPubGet: false
+
+# API-only mode settings
+# Disable unnecessary features for internal use
+deliverJobConcurrency: 0
+inboxJobConcurrency: 0
+
+# Allow API access without CORS restrictions from our Next.js app
+cors:
+  origin: '*'
+
+# Clustering - single instance
+clusterLimit: 1

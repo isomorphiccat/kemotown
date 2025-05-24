@@ -103,10 +103,12 @@ src/
 | Authentication | NextAuth.js 4.24+ | OAuth authentication (Google, Kakao) |
 | State Management | React Hooks + SWR | Client state and server state management |
 | UI Components | shadcn/ui | Accessible component library |
+| Timeline Backend | Misskey (API-only) | Self-hosted timeline service for social features |
 | Payments | Toss Payments API | Korean payment processing (planned) |
 | Deployment | Vercel | Hosting with automatic GitHub deployments |
 | Language | TypeScript 5+ | Strict type safety throughout the stack |
 | CI/CD | GitHub Actions | Automated testing, linting, and security checks |
+| Containerization | Docker Compose | Local development and deployment orchestration |
 
 ⸻
 
@@ -124,7 +126,7 @@ src/
 |-----------|-------------|----------|
 | **Welcome Section** | Personalized greeting with user's furry name | Korean localization, emoji support |
 | **My Events** | User's attending events (max 2 displayed) | RSVP status, quick event details |
-| **Community Timeline** | Global activity feed with real API data | Event creation, user joins, RSVP updates |
+| **Community Timeline** | Misskey-powered timeline with real-time updates | Text posts, bot notifications, streaming updates |
 | **Quick Profile** | Sidebar profile overview | Avatar, username, profile link |
 | **Upcoming Events** | Sidebar event list with live data | Date/time, participant count |
 | **New Members** | Recently joined users with real data | Interest tags, profile links |
@@ -205,6 +207,10 @@ export interface EventSummary {
 | `/api/events` | GET, POST | List and create events with search/pagination | ✅ Implemented |
 | `/api/events/[id]` | GET, PUT, DELETE | Event CRUD operations with RSVP status | ✅ Implemented |
 | `/api/events/[id]/rsvp` | POST, DELETE | RSVP management with capacity control | ✅ Implemented |
+| `/api/misskey/timeline` | GET | Fetch Misskey timeline (global or channel) | ✅ Implemented |
+| `/api/misskey/notes` | POST | Create new posts in timeline | ✅ Implemented |
+| `/api/misskey/stream` | GET | Server-sent events for real-time updates | ✅ Implemented |
+| `/api/misskey/bot/notify` | POST | Send bot notifications to timeline | ✅ Implemented |
 
 ### Planned API Endpoints
 
@@ -226,7 +232,49 @@ export interface EventSummary {
 
 ⸻
 
-## 9. Security & Privacy
+## 9. Misskey Timeline Integration
+
+### 9.1 Architecture
+Kemotown integrates Misskey as an API-only timeline backend service:
+- **Deployment**: Runs alongside Next.js in Docker Compose
+- **Database**: Separate PostgreSQL schema (`misskey_kemotown`)
+- **Access**: Internal API-only access via Nginx reverse proxy
+- **Frontend**: Custom React components maintain Kemotown's UI design
+
+### 9.2 Bot System
+Generalized bot system for automated notifications:
+- **System Bot**: Global announcements (user joins, events created)
+- **Welcome Bot**: Greets new members
+- **Event Bots**: Per-event notification, moderation, and helper bots
+- **Factory Pattern**: Dynamic bot creation with unique identities
+
+### 9.3 Timeline Features
+| Feature | Global Timeline | Event Timeline | Status |
+|---------|----------------|----------------|--------|
+| Text Posts | ✅ | 🔄 Planned | Users can post text |
+| Real-time Updates | ✅ | 🔄 Planned | SSE streaming |
+| Bot Notifications | ✅ | 🔄 Planned | Automated posts |
+| User Mentions | 🔄 Planned | 🔄 Planned | @username support |
+| Reactions | 🔄 Planned | 🔄 Planned | Emoji reactions |
+| Media Uploads | 🔄 Planned | 🔄 Planned | Images/videos |
+
+### 9.4 Data Models
+```prisma
+model UserMisskeyAccount {
+  userId        String   @unique
+  misskeyUserId String
+  apiToken      String
+}
+
+model EventMisskeyChannel {
+  eventId   String   @unique
+  channelId String
+}
+```
+
+⸻
+
+## 10. Security & Privacy
 
 - **Authentication**: NextAuth.js with OAuth providers (Google, Kakao)
 - **CSRF Protection**: Built‑in Next.js CSRF protection
@@ -237,7 +285,7 @@ export interface EventSummary {
 
 ⸻
 
-## 10. Performance Optimization
+## 11. Performance Optimization
 
 - **Server Components**: Reduce client‑side JavaScript bundle
 - **Image Optimization**: Next.js Image component with lazy loading
@@ -248,7 +296,7 @@ export interface EventSummary {
 
 ⸻
 
-## 11. Internationalization
+## 12. Internationalization
 
 - **next‑intl**: For Korean/English language support
 - **Date/Time**: Korean timezone handling with date‑fns
@@ -257,7 +305,7 @@ export interface EventSummary {
 
 ⸻
 
-## 12. Testing Strategy
+## 13. Testing Strategy
 
 | Type | Tool | Coverage |
 |------|------|----------|
@@ -269,44 +317,46 @@ export interface EventSummary {
 
 ⸻
 
-## 13. Deployment & DevOps (Implemented)
+## 14. Deployment & DevOps (Implemented)
 
-### 13.1 CI/CD Pipeline (GitHub Actions)
+### 14.1 CI/CD Pipeline (GitHub Actions)
 | Workflow | Triggers | Purpose | Status |
 |----------|----------|---------|--------|
 | **CI** | Push/PR to main, develop | ESLint, TypeScript, tests, build verification | ✅ Implemented |
 | **Security** | Push/PR to main + weekly | npm audit, CodeQL analysis, dependency checks | ✅ Implemented |
 | **Quality** | Push/PR to main, develop | Code formatting, bundle analysis, performance checks | ✅ Implemented |
 
-### 13.2 Environment Setup
+### 14.2 Environment Setup
 1. **Development**: `npm run dev` with Turbopack for fast reload
 2. **Build**: `prisma generate && next build` with environment validation
 3. **Testing**: Jest + React Testing Library with coverage reports
 4. **Linting**: ESLint with strict TypeScript rules
 5. **Type Checking**: Strict TypeScript compilation
 
-### 13.3 Production Deployment
+### 14.3 Production Deployment
 | Environment | Platform | Database | Domain | Status |
 |-------------|----------|----------|---------|--------|
 | **Production** | Vercel | Railway PostgreSQL | kemo.town | ✅ Configured |
 | **Preview** | Vercel PR Deploys | Railway (shared) | *.vercel.app | ✅ Automated |
 | **Development** | Local | Railway (shared) | localhost:3000 | ✅ Working |
 
-### 13.4 Environment Variables
+### 14.4 Environment Variables
 - `DATABASE_URL`: Railway PostgreSQL connection string
 - `NEXTAUTH_URL`: Production domain (kemo.town)
 - `NEXTAUTH_SECRET`: Secure random string for JWT signing
 - `GOOGLE_CLIENT_ID/SECRET`: OAuth provider credentials
 - `KAKAO_CLIENT_ID/SECRET`: Korean OAuth provider (planned)
+- `MISSKEY_API_URL`: Internal Misskey API endpoint
+- `MISSKEY_ADMIN_TOKEN`: Misskey admin authentication token
 
-### 13.5 Monitoring & Analytics
+### 14.5 Monitoring & Analytics
 - **Vercel Analytics**: Performance and usage metrics
 - **GitHub Actions**: Build and test status monitoring
 - **Railway**: Database performance and connection monitoring
 
 ⸻
 
-## 14. Future Enhancements
+## 15. Future Enhancements
 
 | Feature | Implementation Notes |
 |---------|---------------------|
@@ -317,7 +367,7 @@ export interface EventSummary {
 
 ⸻
 
-## 15. Open Design Questions
+## 16. Open Design Questions
 
 1. **State Management**: Zustand vs Redux Toolkit for complex state
 2. **Real‑time Updates**: WebSocket vs Server‑Sent Events for payment status
@@ -326,9 +376,9 @@ export interface EventSummary {
 
 ⸻
 
-## 16. Implementation Status & Next Steps
+## 17. Implementation Status & Next Steps
 
-### 16.1 Completed ✅
+### 17.1 Completed ✅
 1. **Project Setup**: Next.js 15+ with TypeScript, Tailwind CSS, and shadcn/ui
 2. **Database Design**: Prisma schema with User, Event, RSVP models + NextAuth tables
 3. **Authentication**: NextAuth.js with Google OAuth and automatic username generation
@@ -345,12 +395,18 @@ export interface EventSummary {
 7. **Real API Integration**: Dashboard timeline, events, and users with live data
 8. **CI/CD Pipeline**: Comprehensive GitHub Actions workflows for quality assurance
 9. **Deployment**: Vercel hosting with Railway PostgreSQL and automatic deployments
+10. **Misskey Timeline Integration**: 
+    - Docker Compose setup with Misskey API-only instance
+    - Custom React timeline component with real-time updates
+    - Generalized bot system for automated notifications
+    - Database schema for user/event Misskey associations
 
-### 16.2 In Progress 🔄
+### 17.2 In Progress 🔄
 1. **Korean OAuth**: Kakao provider integration for local user adoption
 2. **File Upload System**: Event cover images and profile pictures
+3. **Per-Event Timeline Channels**: Implement Misskey channels for event-specific timelines
 
-### 16.3 Next Priorities 🎯
+### 17.3 Next Priorities 🎯
 1. **Enhanced Event Features** (High Priority)
    - File upload for event cover images
    - Event comments and discussions
@@ -366,7 +422,7 @@ export interface EventSummary {
    - Virtual account generation and webhook handling
    - Payment status tracking and notifications
 
-### 16.4 Future Enhancements 🚀
+### 17.4 Future Enhancements 🚀
 - Real-time chat for events
 - Mobile PWA optimization
 - Push notifications for event updates

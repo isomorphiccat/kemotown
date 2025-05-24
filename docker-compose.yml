@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-postgres}
+      POSTGRES_DB: postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Redis Cache
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # Misskey Instance (API-only mode)
+  misskey:
+    image: misskey/misskey:2024.10.1
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+    volumes:
+      - ./misskey/config:/misskey/.config:ro
+      - misskey_files:/misskey/files
+    ports:
+      - "3001:3000"  # Misskey on port 3001, Next.js on 3000
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Next.js Application (Kemotown)
+  kemotown:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      misskey:
+        condition: service_healthy
+    environment:
+      NODE_ENV: ${NODE_ENV:-development}
+      DATABASE_URL: postgresql://postgres:${DATABASE_PASSWORD:-postgres}@postgres:5432/kemotown
+      REDIS_URL: redis://redis:6379
+      MISSKEY_API_URL: http://misskey:3000
+      NEXTAUTH_URL: ${NEXTAUTH_URL:-http://localhost:3000}
+      NEXTAUTH_SECRET: ${NEXTAUTH_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+    volumes:
+      - ./src:/app/src
+      - ./public:/app/public
+    ports:
+      - "3000:3000"
+    command: >
+      sh -c "
+        npx prisma migrate deploy &&
+        npm run dev
+      "
+
+  # Nginx Reverse Proxy
+  nginx:
+    image: nginx:alpine
+    restart: unless-stopped
+    depends_on:
+      - kemotown
+      - misskey
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/conf.d:/etc/nginx/conf.d:ro
+    ports:
+      - "80:80"
+      - "443:443"
+
+volumes:
+  postgres_data:
+  redis_data:
+  misskey_files:

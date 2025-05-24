@@ -63,6 +63,7 @@ model User {
   sessions          Session[]
   hostedEvents      Event[]   @relation("HostedEvents")
   rsvps             RSVP[]
+  misskeyAccount    UserMisskeyAccount?
 }
 
 model VerificationToken {
@@ -92,6 +93,7 @@ model Event {
   eventRules        String?
   tags              String[]
   rsvps             RSVP[]
+  misskeyChannel    EventMisskeyChannel?
 }
 
 model RSVP {
@@ -119,4 +121,26 @@ enum PaymentStatus {
   PAID
   FAILED
   NOT_APPLICABLE
+}
+
+// Misskey Integration Models
+model UserMisskeyAccount {
+  id              String   @id @default(cuid())
+  userId          String   @unique
+  misskeyUserId   String
+  apiToken        String   @db.Text
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model EventMisskeyChannel {
+  id              String   @id @default(cuid())
+  eventId         String   @unique
+  channelId       String
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  event           Event    @relation(fields: [eventId], references: [id], onDelete: Cascade)
 }
