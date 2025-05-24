@@ -63,6 +63,9 @@ model User {
   sessions          Session[]
   hostedEvents      Event[]   @relation("HostedEvents")
   rsvps             RSVP[]
+  timelinePosts     TimelinePost[]
+  reactions         Reaction[]
+  mentionsReceived  Mention[] @relation("MentionedUser")
 }
 
 model VerificationToken {
@@ -92,6 +95,8 @@ model Event {
   eventRules        String?
   tags              String[]
   rsvps             RSVP[]
+  timelinePosts     TimelinePost[]
+  bots              BotUser[]
 }
 
 model RSVP {
@@ -119,4 +124,96 @@ enum PaymentStatus {
   PAID
   FAILED
   NOT_APPLICABLE
+}
+
+// Timeline Models
+model TimelinePost {
+  id            String   @id @default(cuid())
+  content       String   @db.Text
+  
+  // Author can be either a User or BotUser
+  userId        String?
+  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  botUserId     String?
+  botUser       BotUser? @relation(fields: [botUserId], references: [id], onDelete: Cascade)
+  
+  eventId       String?  // null for global timeline, eventId for event-specific posts
+  event         Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  channelType   ChannelType @default(GLOBAL)
+  
+  // Bot-related fields
+  isBot         Boolean  @default(false)
+  botType       BotType?
+  
+  // Metadata
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  reactions     Reaction[]
+  mentions      Mention[]
+  
+  @@index([channelType, createdAt])
+  @@index([eventId, createdAt])
+  @@index([userId, createdAt])
+  @@index([botUserId, createdAt])
+}
+
+model Reaction {
+  id            String   @id @default(cuid())
+  postId        String
+  post          TimelinePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  emoji         String
+  createdAt     DateTime @default(now())
+  
+  @@unique([postId, userId, emoji])
+  @@index([postId])
+}
+
+model Mention {
+  id            String   @id @default(cuid())
+  postId        String
+  post          TimelinePost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  mentionedId   String
+  mentionedUser User     @relation("MentionedUser", fields: [mentionedId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+  
+  @@index([postId])
+  @@index([mentionedId])
+}
+
+// Bot Users
+model BotUser {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  displayName   String
+  description   String?
+  avatarUrl     String?
+  botType       BotType
+  eventId       String?  // null for system bots, eventId for event-specific bots
+  event         Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+  
+  // Relations
+  timelinePosts TimelinePost[]
+  
+  @@index([botType])
+  @@index([eventId])
+}
+
+enum ChannelType {
+  GLOBAL
+  EVENT
+}
+
+enum BotType {
+  SYSTEM          // System-wide notifications
+  WELCOME         // Welcome messages for new users
+  EVENT_NOTIFY    // Event notifications
+  EVENT_MOD       // Event moderator bot
+  EVENT_HELPER    // Event helper bot
 }

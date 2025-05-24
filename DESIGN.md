@@ -1,6 +1,6 @@
 # Kemotown — Next.js/React Architectural Blueprint
 
-Version 0.4 (updated with Event Management System, January 22 2025)
+Version 0.5 (updated with Custom Timeline Service and Bot System, May 24 2025)
 
 ⸻
 
@@ -103,6 +103,7 @@ src/
 | Authentication | NextAuth.js 4.24+ | OAuth authentication (Google, Kakao) |
 | State Management | React Hooks + SWR | Client state and server state management |
 | UI Components | shadcn/ui | Accessible component library |
+| Timeline Backend | Custom Service | Native timeline with real-time updates via SSE |
 | Payments | Toss Payments API | Korean payment processing (planned) |
 | Deployment | Vercel | Hosting with automatic GitHub deployments |
 | Language | TypeScript 5+ | Strict type safety throughout the stack |
@@ -124,7 +125,7 @@ src/
 |-----------|-------------|----------|
 | **Welcome Section** | Personalized greeting with user's furry name | Korean localization, emoji support |
 | **My Events** | User's attending events (max 2 displayed) | RSVP status, quick event details |
-| **Community Timeline** | Global activity feed with real API data | Event creation, user joins, RSVP updates |
+| **Community Timeline** | Custom timeline with real-time updates via SSE | Text posts, bot notifications, reactions, mentions |
 | **Quick Profile** | Sidebar profile overview | Avatar, username, profile link |
 | **Upcoming Events** | Sidebar event list with live data | Date/time, participant count |
 | **New Members** | Recently joined users with real data | Interest tags, profile links |
@@ -205,6 +206,11 @@ export interface EventSummary {
 | `/api/events` | GET, POST | List and create events with search/pagination | ✅ Implemented |
 | `/api/events/[id]` | GET, PUT, DELETE | Event CRUD operations with RSVP status | ✅ Implemented |
 | `/api/events/[id]/rsvp` | POST, DELETE | RSVP management with capacity control | ✅ Implemented |
+| `/api/timeline` | GET | Fetch timeline posts with pagination | ✅ Implemented |
+| `/api/timeline/posts` | POST | Create new timeline posts | ✅ Implemented |
+| `/api/timeline/stream` | GET | Server-sent events for real-time updates | ✅ Implemented |
+| `/api/timeline/posts/[id]/reactions` | POST, DELETE | Add/remove reactions to posts | ✅ Implemented |
+| `/api/timeline/bot` | POST | Send bot notifications to timeline | ✅ Implemented |
 
 ### Planned API Endpoints
 
@@ -226,7 +232,65 @@ export interface EventSummary {
 
 ⸻
 
-## 9. Security & Privacy
+## 9. Custom Timeline Service
+
+### 9.1 Architecture
+Kemotown implements a lightweight, event-centric timeline service that:
+- **Native Integration**: Built directly into the Next.js application
+- **Real-time Updates**: Server-Sent Events (SSE) for Vercel compatibility
+- **Database**: Uses existing PostgreSQL with Prisma ORM
+- **Frontend**: Custom React components with Naver Band-inspired UI
+
+### 9.2 Bot System
+Generalized bot system with factory pattern for automated notifications:
+- **System Bot**: Global announcements (user joins, events created)
+- **Welcome Bot**: Greets new members with personalized messages
+- **Event Bots**: Per-event notification, moderation, and helper bots
+- **Template System**: Dynamic message generation with variable substitution
+- **Separate Model**: BotUser table with foreign key relationship to TimelinePost
+- **Authentication**: Internal API secured with INTERNAL_API_KEY for bot operations
+
+### 9.3 Timeline Features
+| Feature | Global Timeline | Event Timeline | Status |
+|---------|----------------|----------------|--------|
+| Text Posts | ✅ Implemented | ✅ Implemented | Users can post text up to 500 characters |
+| Real-time Updates | ✅ Implemented | ✅ Implemented | SSE streaming for instant updates |
+| Bot Notifications | ✅ Implemented | ✅ Implemented | Automated posts for system events |
+| User Mentions | ✅ Implemented | ✅ Implemented | @username support with links |
+| Reactions | ✅ Implemented | ✅ Implemented | 5 emoji reactions per post |
+| Media Uploads | 🔄 Planned | 🔄 Planned | Images/videos support |
+
+### 9.4 Data Models
+```prisma
+model TimelinePost {
+  id            String      @id @default(cuid())
+  content       String      @db.Text
+  userId        String
+  eventId       String?     // null for global, eventId for event-specific
+  channelType   ChannelType @default(GLOBAL)
+  isBot         Boolean     @default(false)
+  botType       BotType?
+  createdAt     DateTime    @default(now())
+  
+  // Relations
+  user          User        @relation(...)
+  event         Event?      @relation(...)
+  reactions     Reaction[]
+  mentions      Mention[]
+}
+
+model BotUser {
+  id            String   @id @default(cuid())
+  username      String   @unique
+  displayName   String
+  botType       BotType
+  eventId       String?  // null for system bots
+}
+```
+
+⸻
+
+## 10. Security & Privacy
 
 - **Authentication**: NextAuth.js with OAuth providers (Google, Kakao)
 - **CSRF Protection**: Built‑in Next.js CSRF protection
@@ -237,7 +301,7 @@ export interface EventSummary {
 
 ⸻
 
-## 10. Performance Optimization
+## 11. Performance Optimization
 
 - **Server Components**: Reduce client‑side JavaScript bundle
 - **Image Optimization**: Next.js Image component with lazy loading
@@ -248,7 +312,7 @@ export interface EventSummary {
 
 ⸻
 
-## 11. Internationalization
+## 12. Internationalization
 
 - **next‑intl**: For Korean/English language support
 - **Date/Time**: Korean timezone handling with date‑fns
@@ -257,7 +321,7 @@ export interface EventSummary {
 
 ⸻
 
-## 12. Testing Strategy
+## 13. Testing Strategy
 
 | Type | Tool | Coverage |
 |------|------|----------|
@@ -269,44 +333,45 @@ export interface EventSummary {
 
 ⸻
 
-## 13. Deployment & DevOps (Implemented)
+## 14. Deployment & DevOps (Implemented)
 
-### 13.1 CI/CD Pipeline (GitHub Actions)
+### 14.1 CI/CD Pipeline (GitHub Actions)
 | Workflow | Triggers | Purpose | Status |
 |----------|----------|---------|--------|
 | **CI** | Push/PR to main, develop | ESLint, TypeScript, tests, build verification | ✅ Implemented |
 | **Security** | Push/PR to main + weekly | npm audit, CodeQL analysis, dependency checks | ✅ Implemented |
 | **Quality** | Push/PR to main, develop | Code formatting, bundle analysis, performance checks | ✅ Implemented |
 
-### 13.2 Environment Setup
+### 14.2 Environment Setup
 1. **Development**: `npm run dev` with Turbopack for fast reload
 2. **Build**: `prisma generate && next build` with environment validation
 3. **Testing**: Jest + React Testing Library with coverage reports
 4. **Linting**: ESLint with strict TypeScript rules
 5. **Type Checking**: Strict TypeScript compilation
 
-### 13.3 Production Deployment
+### 14.3 Production Deployment
 | Environment | Platform | Database | Domain | Status |
 |-------------|----------|----------|---------|--------|
 | **Production** | Vercel | Railway PostgreSQL | kemo.town | ✅ Configured |
 | **Preview** | Vercel PR Deploys | Railway (shared) | *.vercel.app | ✅ Automated |
 | **Development** | Local | Railway (shared) | localhost:3000 | ✅ Working |
 
-### 13.4 Environment Variables
+### 14.4 Environment Variables
 - `DATABASE_URL`: Railway PostgreSQL connection string
 - `NEXTAUTH_URL`: Production domain (kemo.town)
 - `NEXTAUTH_SECRET`: Secure random string for JWT signing
 - `GOOGLE_CLIENT_ID/SECRET`: OAuth provider credentials
 - `KAKAO_CLIENT_ID/SECRET`: Korean OAuth provider (planned)
+- `INTERNAL_API_KEY`: Internal API key for bot notifications
 
-### 13.5 Monitoring & Analytics
+### 14.5 Monitoring & Analytics
 - **Vercel Analytics**: Performance and usage metrics
 - **GitHub Actions**: Build and test status monitoring
 - **Railway**: Database performance and connection monitoring
 
 ⸻
 
-## 14. Future Enhancements
+## 15. Future Enhancements
 
 | Feature | Implementation Notes |
 |---------|---------------------|
@@ -317,7 +382,7 @@ export interface EventSummary {
 
 ⸻
 
-## 15. Open Design Questions
+## 16. Open Design Questions
 
 1. **State Management**: Zustand vs Redux Toolkit for complex state
 2. **Real‑time Updates**: WebSocket vs Server‑Sent Events for payment status
@@ -326,9 +391,43 @@ export interface EventSummary {
 
 ⸻
 
-## 16. Implementation Status & Next Steps
+## 16.1 Security Architecture
 
-### 16.1 Completed ✅
+**Authentication & Authorization**
+- Internal API authentication using INTERNAL_API_KEY for bot operations
+- Session-based authentication via NextAuth.js with OAuth providers
+- Event timeline access controls (RSVP validation for attendees/considering users)
+- Real-time connection limits and user-based rate limiting
+
+**Input Validation & Sanitization**
+- Zod schema validation for all API endpoints with discriminated unions
+- Template injection prevention with allowlisted bot message templates
+- HTML entity encoding for user-generated content in bot messages
+- Post and reaction access validation at the service layer
+
+**Real-time Security (SSE)**
+- Connection limits: maximum 5 connections per user
+- Connection duration limits: 24-hour maximum lifespan
+- Automatic cleanup of stale connections with periodic maintenance
+- Client-side reconnection logic with exponential backoff (max 5 attempts)
+
+**Bot System Security**
+- Strict template allowlisting to prevent injection attacks
+- Concurrent initialization protection using Promise-based guards
+- Event existence validation before bot operations
+- Separate BotUser model isolation from regular User authentication
+
+**Data Integrity**
+- Event timeline restricted posting (RSVP validation required)
+- Reaction ownership verification and duplicate prevention via upserts
+- Post authorship validation (userId XOR botUserId constraints)
+- Event existence checks before timeline operations
+
+⸻
+
+## 17. Implementation Status & Next Steps
+
+### 17.1 Completed ✅
 1. **Project Setup**: Next.js 15+ with TypeScript, Tailwind CSS, and shadcn/ui
 2. **Database Design**: Prisma schema with User, Event, RSVP models + NextAuth tables
 3. **Authentication**: NextAuth.js with Google OAuth and automatic username generation
@@ -345,12 +444,25 @@ export interface EventSummary {
 7. **Real API Integration**: Dashboard timeline, events, and users with live data
 8. **CI/CD Pipeline**: Comprehensive GitHub Actions workflows for quality assurance
 9. **Deployment**: Vercel hosting with Railway PostgreSQL and automatic deployments
+10. **Custom Timeline Service**: 
+    - Native timeline implementation with PostgreSQL/Prisma
+    - React component with SSE for real-time updates
+    - Generalized bot system with factory pattern
+    - Support for global and per-event timeline channels
+    - Reactions and mentions functionality
+    - **Security Hardening (2025-05-24)**:
+      - Fixed API parameter type safety and validation issues
+      - Enhanced environment variable safety checks
+      - Improved SSE connection management and memory leak prevention
+      - Added comprehensive input validation with discriminated unions
+      - Strengthened bot API authentication and access controls
+      - Performance optimizations and database query improvements
 
-### 16.2 In Progress 🔄
+### 17.2 In Progress 🔄
 1. **Korean OAuth**: Kakao provider integration for local user adoption
 2. **File Upload System**: Event cover images and profile pictures
 
-### 16.3 Next Priorities 🎯
+### 17.3 Next Priorities 🎯
 1. **Enhanced Event Features** (High Priority)
    - File upload for event cover images
    - Event comments and discussions
@@ -366,7 +478,7 @@ export interface EventSummary {
    - Virtual account generation and webhook handling
    - Payment status tracking and notifications
 
-### 16.4 Future Enhancements 🚀
+### 17.4 Future Enhancements 🚀
 - Real-time chat for events
 - Mobile PWA optimization
 - Push notifications for event updates

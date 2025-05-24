@@ -1,5 +1,5 @@
-const { PrismaClient } = require('@prisma/client');
-const { uniqueNamesGenerator, adjectives, animals } = require('unique-names-generator');
+import { PrismaClient } from '@prisma/client';
+import { uniqueNamesGenerator, adjectives, animals } from 'unique-names-generator';
 
 const prisma = new PrismaClient();
 

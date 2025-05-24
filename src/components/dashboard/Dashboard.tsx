@@ -5,6 +5,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Timeline } from '@/components/timeline/Timeline';
 
 interface Event {
   id: string;
@@ -30,23 +31,11 @@ interface User {
   interestTags?: string[];
 }
 
-interface TimelineItem {
-  id: string;
-  type: 'event_created' | 'user_joined' | 'rsvp_update';
-  content: string;
-  timestamp: string;
-  userId?: string;
-  username?: string;
-  furryName?: string;
-  eventId?: string;
-  eventTitle?: string;
-}
 
 const Dashboard: React.FC = () => {
   const { data: session } = useSession();
   const [upcomingEvents, setUpcomingEvents] = useState<Event[]>([]);
   const [userEvents, setUserEvents] = useState<Event[]>([]);
-  const [timeline, setTimeline] = useState<TimelineItem[]>([]);
   const [recentUsers, setRecentUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -54,21 +43,18 @@ const Dashboard: React.FC = () => {
     const fetchDashboardData = async () => {
       try {
         // Fetch all dashboard data in parallel
-        const [timelineResponse, eventsResponse, usersResponse] = await Promise.all([
-          fetch('/api/dashboard?limit=10'),
+        const [eventsResponse, usersResponse] = await Promise.all([
           fetch('/api/dashboard/events?upcoming_limit=10&user_limit=5'),
           fetch('/api/dashboard/users?limit=5')
         ]);
 
-        if (!timelineResponse.ok || !eventsResponse.ok || !usersResponse.ok) {
+        if (!eventsResponse.ok || !usersResponse.ok) {
           throw new Error('Failed to fetch dashboard data');
         }
 
-        const timelineData = await timelineResponse.json();
         const eventsData = await eventsResponse.json();
         const usersData = await usersResponse.json();
 
-        setTimeline(timelineData.timeline || []);
         setUpcomingEvents(eventsData.upcomingEvents || []);
         setUserEvents(eventsData.userEvents || []);
         setRecentUsers(usersData.recentUsers || []);
@@ -76,7 +62,6 @@ const Dashboard: React.FC = () => {
       } catch (error) {
         console.error('Error fetching dashboard data:', error);
         // Set empty arrays as fallback
-        setTimeline([]);
         setUpcomingEvents([]);
         setUserEvents([]);
         setRecentUsers([]);
@@ -95,16 +80,6 @@ const Dashboard: React.FC = () => {
       hour: '2-digit',
       minute: '2-digit'
     });
-  };
-
-  const formatTimeAgo = (dateString: string) => {
-    const now = new Date();
-    const date = new Date(dateString);
-    const diffInHours = Math.floor((now.getTime() - date.getTime()) / (1000 * 60 * 60));
-    
-    if (diffInHours < 1) return '방금 전';
-    if (diffInHours < 24) return `${diffInHours}시간 전`;
-    return `${Math.floor(diffInHours / 24)}일 전`;
   };
 
   if (loading) {
@@ -216,36 +191,12 @@ const Dashboard: React.FC = () => {
                   최근 커뮤니티 활동을 확인하세요
                 </CardDescription>
               </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {timeline.map((item) => (
-                    <div key={item.id} className="flex items-start space-x-3 p-3 hover:bg-gray-50 dark:hover:bg-gray-800 rounded-lg transition-colors">
-                      <Link href={`/profile/${item.username}`} className="flex-shrink-0">
-                        <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center hover:bg-primary/20 transition-colors">
-                          <span className="text-primary font-bold text-sm">
-                            {item.furryName?.charAt(0) || item.username?.charAt(0) || '?'}
-                          </span>
-                        </div>
-                      </Link>
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-900 dark:text-white font-korean">
-                          <Link href={`/profile/${item.username}`} className="font-semibold hover:text-primary transition-colors">
-                            {item.furryName || item.username}
-                          </Link>
-                          {item.type === 'event_created' && ' 님이 새로운 이벤트를 만들었습니다'}
-                          {item.type === 'user_joined' && ' 님이 커뮤니티에 가입했습니다'}
-                          {item.type === 'rsvp_update' && ' 님이 이벤트에 참가 신청했습니다'}
-                        </p>
-                        {item.eventTitle && (
-                          <p className="text-sm text-primary font-korean mt-1">&ldquo;{item.eventTitle}&rdquo;</p>
-                        )}
-                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-korean">
-                          {formatTimeAgo(item.timestamp)}
-                        </p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <CardContent className="p-0">
+                <Timeline 
+                  limit={20} 
+                  showPostForm={true}
+                  className="p-4"
+                />
               </CardContent>
             </Card>
           </div>

@@ -117,6 +117,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     });
 
+    // Notify timeline about RSVP
+    try {
+      if (!process.env.NEXTAUTH_URL || !process.env.INTERNAL_API_KEY) {
+        console.warn('Missing NEXTAUTH_URL or INTERNAL_API_KEY, skipping bot notification');
+        return NextResponse.json(rsvp, { status: 200 });
+      }
+      
+      if (rsvp.user.username) {
+        await fetch(`${process.env.NEXTAUTH_URL}/api/timeline/bot`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-api-key': process.env.INTERNAL_API_KEY,
+          },
+          body: JSON.stringify({
+            type: 'event_rsvp',
+            data: {
+              username: rsvp.user.username,
+              eventTitle: rsvp.event.title,
+              status: status.toLowerCase(),
+              eventId: id
+            }
+          })
+        });
+      }
+    } catch (error) {
+      console.error('Failed to notify about RSVP:', error);
+    }
+
     return NextResponse.json(rsvp, { status: 200 });
 
   } catch (error) {
