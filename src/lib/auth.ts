@@ -4,10 +4,25 @@ import KakaoProvider from 'next-auth/providers/kakao';
 import { PrismaAdapter } from '@auth/prisma-adapter';
 import { prisma } from './db';
 import { uniqueNamesGenerator, adjectives, animals, Config } from 'unique-names-generator';
+import { Adapter } from 'next-auth/adapters';
+
+// Custom adapter that handles users without email
+const customPrismaAdapter = PrismaAdapter(prisma) as Adapter;
+
+// Override createUser to handle Kakao users without email
+const originalCreateUser = customPrismaAdapter.createUser!;
+customPrismaAdapter.createUser = async (user) => {
+  // For Kakao users without email, generate a placeholder email
+  if (!user.email) {
+    const timestamp = Date.now();
+    user.email = `kakao_${timestamp}@placeholder.local`;
+  }
+  return originalCreateUser(user);
+};
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-  adapter: PrismaAdapter(prisma),
+  adapter: customPrismaAdapter,
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID!,
