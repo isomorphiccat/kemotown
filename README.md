@@ -43,12 +43,18 @@ Kemotown is a dedicated platform designed to provide a semi-formal digital space
    npm install
    ```
 
-3. Run the development server:
+3. Set up environment variables:
+   - Copy `.env.example` to `.env.local`
+   - Configure OAuth providers:
+     - For Google OAuth: Set `GOOGLE_CLIENT_ID` and `GOOGLE_CLIENT_SECRET`
+     - For Kakao OAuth: Follow the [Kakao OAuth Setup Guide](KAKAO_OAUTH_SETUP.md)
+
+4. Run the development server:
    ```bash
    npm run dev
    ```
 
-4. Open [http://localhost:3000](http://localhost:3000) in your browser.
+5. Open [http://localhost:3000](http://localhost:3000) in your browser.
 
 ### Available Scripts
 

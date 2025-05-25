@@ -100,7 +100,7 @@ src/
 | Styling | Tailwind CSS 4 | Utility‑first CSS framework with Korean font support |
 | Database | PostgreSQL | Primary data store (Railway for production) |
 | ORM | Prisma 6.8+ | Type‑safe database client with auto-generation |
-| Authentication | NextAuth.js 4.24+ | OAuth authentication (Google, Kakao) |
+| Authentication | NextAuth.js 4.24+ | OAuth authentication (Google, Kakao) - See [Kakao OAuth Setup](KAKAO_OAUTH_SETUP.md) |
 | State Management | React Hooks + SWR | Client state and server state management |
 | UI Components | shadcn/ui | Accessible component library |
 | Timeline Backend | Custom Service | Native timeline with real-time updates via SSE |
@@ -116,7 +116,7 @@ src/
 ### 5.1 Authentication Flow
 | Flow | Implementation | Status |
 |------|----------------|--------|
-| OAuth Login | Google/Kakao OAuth → NextAuth.js → automatic username generation | ✅ Implemented |
+| OAuth Login | Google/Kakao OAuth → NextAuth.js → automatic username generation (email optional for Kakao) | ✅ Implemented |
 | User Registration | OAuth signup → profile creation → dashboard redirect | ✅ Implemented |
 | Session Management | JWT sessions with middleware protection | ✅ Implemented |
 

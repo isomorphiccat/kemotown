@@ -58,10 +58,12 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account }) {
       // Only allow OAuth sign-ins from Google and Kakao
       if (account?.provider === 'google' || account?.provider === 'kakao') {
-        // Verify user has an email
-        if (!user?.email) {
+        // Google requires email
+        if (account.provider === 'google' && !user?.email) {
           return false;
         }
+        // Kakao users might not have email (non-business accounts)
+        // They can still sign in using their Kakao ID
         return true;
       }
       
