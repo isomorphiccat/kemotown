@@ -43,9 +43,48 @@ async function generateUniqueUsername(): Promise<string> {
   return username;
 }
 
+// Validate OAuth credentials - only add providers with valid credentials
+const googleClientId = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const kakaoClientId = process.env.KAKAO_CLIENT_ID;
+const kakaoClientSecret = process.env.KAKAO_CLIENT_SECRET;
+
+// Build providers array dynamically based on available credentials
+const providers = [];
+
+if (googleClientId && googleClientSecret) {
+  providers.push(
+    Google({
+      clientId: googleClientId,
+      clientSecret: googleClientSecret,
+      authorization: {
+        params: {
+          prompt: 'consent',
+          access_type: 'offline',
+          response_type: 'code',
+        },
+      },
+    })
+  );
+} else if (process.env.NODE_ENV === 'development') {
+  console.warn('[Auth] Google OAuth not configured: missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET');
+}
+
+if (kakaoClientId && kakaoClientSecret) {
+  providers.push(
+    Kakao({
+      clientId: kakaoClientId,
+      clientSecret: kakaoClientSecret,
+    })
+  );
+} else if (process.env.NODE_ENV === 'development') {
+  console.warn('[Auth] Kakao OAuth not configured: missing KAKAO_CLIENT_ID or KAKAO_CLIENT_SECRET');
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(db),
-  secret: process.env.AUTH_SECRET,
+  // Support both AUTH_SECRET (v5) and NEXTAUTH_SECRET (v4 legacy)
+  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
   trustHost: true,
   cookies: {
     pkceCodeVerifier: {
@@ -58,23 +97,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     },
   },
-  providers: [
-    Google({
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorization: {
-        params: {
-          prompt: 'consent',
-          access_type: 'offline',
-          response_type: 'code',
-        },
-      },
-    }),
-    Kakao({
-      clientId: process.env.KAKAO_CLIENT_ID!,
-      clientSecret: process.env.KAKAO_CLIENT_SECRET!,
-    }),
-  ],
+  providers,
   session: {
     strategy: 'database',
   },
