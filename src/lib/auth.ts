@@ -90,6 +90,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         if (account.provider === 'google' && !user?.email) {
           return false;
         }
+        // Kakao users might not have email (non-business accounts)
+        // They can still sign in using their Kakao ID
         return true;
       }
       return false;
