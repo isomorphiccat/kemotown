@@ -13,14 +13,12 @@ import { InterestTags } from '@/components/users/InterestTags';
 import { SocialLinks } from '@/components/users/SocialLinks';
 
 interface ProfilePageProps {
-  params: {
-    username: string;
-  };
+  params: Promise<{ username: string }>;
 }
 
 export default async function ProfilePage({ params }: ProfilePageProps) {
   const session = await auth();
-  const { username } = params;
+  const { username } = await params;
 
   // Fetch user data
   const trpc = await createServerCaller();
@@ -92,7 +90,7 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
 }
 
 export async function generateMetadata({ params }: ProfilePageProps) {
-  const { username } = params;
+  const { username } = await params;
 
   try {
     const trpc = await createServerCaller();
