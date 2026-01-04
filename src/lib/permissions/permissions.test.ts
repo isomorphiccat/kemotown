@@ -14,7 +14,31 @@ vi.mock('@/server/db', () => ({
 vi.mock('@/lib/plugins/registry', () => ({
   pluginRegistry: {
     get: vi.fn(),
+    register: vi.fn(),
+    unregister: vi.fn(),
+    has: vi.fn(),
+    ids: vi.fn().mockReturnValue([]),
+    count: vi.fn().mockReturnValue(0),
+    getForContextType: vi.fn().mockReturnValue([]),
   },
+  getPlugin: vi.fn(),
+}));
+
+// Mock the plugins index to prevent auto-initialization
+vi.mock('@/lib/plugins', () => ({
+  pluginRegistry: {
+    get: vi.fn(),
+    register: vi.fn(),
+    unregister: vi.fn(),
+    has: vi.fn(),
+    ids: vi.fn().mockReturnValue([]),
+    count: vi.fn().mockReturnValue(0),
+    getForContextType: vi.fn().mockReturnValue([]),
+  },
+  getPlugin: vi.fn(),
+  initializePlugins: vi.fn(),
+  ensurePluginsInitialized: vi.fn(),
+  isPluginsInitialized: vi.fn().mockReturnValue(true),
 }));
 
 // Import after mocking
@@ -41,7 +65,8 @@ import {
   getRolesBelow,
 } from './index';
 import { db } from '@/server/db';
-import { pluginRegistry } from '@/lib/plugins/registry';
+// Import from @/lib/plugins to match what the actual permission code imports
+import { pluginRegistry } from '@/lib/plugins';
 import type { PermissionContext } from './types';
 
 // Cast for type safety in tests
