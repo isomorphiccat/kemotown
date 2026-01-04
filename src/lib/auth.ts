@@ -57,6 +57,10 @@ console.log('[Auth] Configuration status:', {
   hasKakaoCredentials: !!(kakaoClientId && kakaoClientSecret),
   googleClientIdLength: googleClientId?.length || 0,
   nodeEnv: process.env.NODE_ENV,
+  // URL configuration - important for callback URLs
+  nextauthUrl: process.env.NEXTAUTH_URL || '(not set)',
+  authUrl: process.env.AUTH_URL || '(not set)',
+  vercelUrl: process.env.VERCEL_URL || '(not set)',
 });
 
 // Build providers array dynamically based on available credentials
@@ -172,7 +176,21 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       }
     },
   },
-  debug: process.env.NODE_ENV === 'development',
+  // Enable debug temporarily to diagnose OAuth issues
+  debug: process.env.AUTH_DEBUG === 'true' || process.env.NODE_ENV === 'development',
+  logger: {
+    error: (code, ...message) => {
+      console.error('[Auth Error]', code, ...message);
+    },
+    warn: (code, ...message) => {
+      console.warn('[Auth Warn]', code, ...message);
+    },
+    debug: (code, ...message) => {
+      if (process.env.AUTH_DEBUG === 'true') {
+        console.log('[Auth Debug]', code, ...message);
+      }
+    },
+  },
 });
 
 // Export auth config for middleware
