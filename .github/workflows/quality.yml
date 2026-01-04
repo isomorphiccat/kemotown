@@ -45,7 +45,7 @@ jobs:
     - name: Test coverage
       run: |
         echo "Running tests with coverage..."
-        npm test -- --coverage --watchAll=false
+        npm test -- --coverage --run
         echo "✅ Test coverage completed"
 
     - name: Bundle analysis

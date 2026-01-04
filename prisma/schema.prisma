@@ -1,71 +1,40 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
+generator client {
+  provider = "prisma-client-js"
+}
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-generator client {
-  provider = "prisma-client-js"
-}
+// =============================================================================
+// Auth.js Models (Required)
+// =============================================================================
 
-// NextAuth.js required models
 model Account {
-  id                String  @id @default(cuid())
+  id                String  @id
   userId            String
   type              String
   provider          String
   providerAccountId String
-  refresh_token     String? @db.Text
-  access_token      String? @db.Text
+  refresh_token     String?
+  access_token      String?
   expires_at        Int?
   token_type        String?
   scope             String?
-  id_token          String? @db.Text
+  id_token          String?
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
 }
 
 model Session {
-  id           String   @id @default(cuid())
+  id           String   @id
   sessionToken String   @unique
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model User {
-  id                String    @id @default(cuid())
-  name              String?
-  email             String?   @unique
-  emailVerified     DateTime?
-  image             String?
-  
-  // Custom fields for furry community
-  username          String?   @unique
-  password          String?
-  furryName         String?
-  profilePictureUrl String?
-  fursuitGallery    Json?
-  characterDetails  Json?
-  socialMediaLinks  Json?
-  interestTags      String[]  @default([])
-  
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  
-  // Relations
-  accounts          Account[]
-  sessions          Session[]
-  hostedEvents      Event[]   @relation("HostedEvents")
-  rsvps             RSVP[]
-  timelinePosts     TimelinePost[]
-  reactions         Reaction[]
-  mentionsReceived  Mention[] @relation("MentionedUser")
 }
 
 model VerificationToken {
@@ -76,144 +45,366 @@ model VerificationToken {
   @@unique([identifier, token])
 }
 
-model Event {
-  id                String    @id // No default, will be set manually
-  title             String
-  coverImageUrl     String?
-  description       String
-  startDate         DateTime
-  endDate           DateTime
-  locationAddress   String?
-  naverMapUrl       String?
-  isLocationPublic  Boolean   @default(false)
-  cost              Float     @default(0)
-  attendeeCap       Int?
-  hostId            String
-  host              User      @relation("HostedEvents", fields: [hostId], references: [id])
-  createdAt         DateTime  @default(now())
-  updatedAt         DateTime  @updatedAt
-  eventRules        String?
-  tags              String[]
-  rsvps             RSVP[]
-  timelinePosts     TimelinePost[]
-  bots              BotUser[]
-}
+// =============================================================================
+// User Model
+// =============================================================================
 
-model RSVP {
-  id            String      @id @default(cuid())
-  userId        String
-  user          User        @relation(fields: [userId], references: [id])
-  eventId       String
-  event         Event       @relation(fields: [eventId], references: [id])
-  status        RSVPStatus
-  paymentStatus PaymentStatus
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+model User {
+  id                     String   @id
+  name                   String?
+  email                  String?  @unique
+  emailVerified          DateTime?
+  image                  String?
+  username               String?  @unique
+  displayName            String?
+  bio                    String?
+  avatarUrl              String?
+  bannerUrl              String?
+  species                String?
+  fursuitPhotos          String[] @default([])
+  socialLinks            Json?
+  interests              String[] @default([])
+  isPublic               Boolean  @default(true)
+  locale                 String   @default("ko")
+  lastActiveAt           DateTime @default(now())
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 
-  @@unique([userId, eventId])
-}
+  // Follow approval setting
+  requiresFollowApproval Boolean @default(false)
 
-enum RSVPStatus {
-  ATTENDING
-  CONSIDERING
-  NOT_ATTENDING
-}
+  // v2 Profile enhancements
+  languages          String[] @default(["ko"])
+  lookingFor         String?
+  isDiscoverable     Boolean  @default(true)
+  approximateLocation Json?
+  lastLocationUpdate DateTime?
+  theme              Json?
+  isAgeVerified      Boolean  @default(false)
+  verifiedAt         DateTime?
 
-enum PaymentStatus {
-  PENDING
-  PAID
-  FAILED
-  NOT_APPLICABLE
-}
-
-// Timeline Models
-model TimelinePost {
-  id            String   @id @default(cuid())
-  content       String   @db.Text
-  
-  // Author can be either a User or BotUser
-  userId        String?
-  user          User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  botUserId     String?
-  botUser       BotUser? @relation(fields: [botUserId], references: [id], onDelete: Cascade)
-  
-  eventId       String?  // null for global timeline, eventId for event-specific posts
-  event         Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  channelType   ChannelType @default(GLOBAL)
-  
-  // Bot-related fields
-  isBot         Boolean  @default(false)
-  botType       BotType?
-  
-  // Metadata
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
   // Relations
-  reactions     Reaction[]
-  mentions      Mention[]
-  
-  @@index([channelType, createdAt])
-  @@index([eventId, createdAt])
-  @@index([userId, createdAt])
-  @@index([botUserId, createdAt])
+  accounts    Account[]
+  sessions    Session[]
+  activities  Activity[]   @relation("ActorActivities")
+  inboxItems  InboxItem[]
+  attachments Attachment[]
+  followers   Follow[]     @relation("Followers")
+  following   Follow[]     @relation("Following")
+
+  // Context system (v2)
+  ownedContexts Context[]    @relation("ContextOwner")
+  memberships   Membership[]
 }
 
-model Reaction {
-  id            String   @id @default(cuid())
-  postId        String
-  post          TimelinePost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  userId        String
-  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  emoji         String
-  createdAt     DateTime @default(now())
-  
-  @@unique([postId, userId, emoji])
-  @@index([postId])
-}
+// =============================================================================
+// Activity Model (ActivityPub-style)
+// =============================================================================
 
-model Mention {
-  id            String   @id @default(cuid())
-  postId        String
-  post          TimelinePost @relation(fields: [postId], references: [id], onDelete: Cascade)
-  mentionedId   String
-  mentionedUser User     @relation("MentionedUser", fields: [mentionedId], references: [id], onDelete: Cascade)
-  createdAt     DateTime @default(now())
-  
-  @@index([postId])
-  @@index([mentionedId])
-}
+/// Activity represents any action in the system (posts, likes, follows, etc.)
+model Activity {
+  id String @id @default(cuid())
 
-// Bot Users
-model BotUser {
-  id            String   @id @default(cuid())
-  username      String   @unique
-  displayName   String
-  description   String?
-  avatarUrl     String?
-  botType       BotType
-  eventId       String?  // null for system bots, eventId for event-specific bots
-  event         Event?   @relation(fields: [eventId], references: [id], onDelete: Cascade)
-  isActive      Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
-  
+  // Activity type
+  type      ActivityType
+  actorId   String
+  actorType ActorType    @default(USER)
+  actor     User         @relation("ActorActivities", fields: [actorId], references: [id], onDelete: Cascade)
+
+  // Object
+  objectType ObjectType?
+  objectId   String?
+  object     Json?
+
+  // Target
+  targetId   String?
+  targetType String?
+
+  // Context (optional)
+  contextId String?
+  context   Context? @relation("ContextActivities", fields: [contextId], references: [id], onDelete: SetNull)
+
+  // Addressing (ActivityPub style)
+  to String[] @default([])
+  cc String[] @default([])
+
+  // Threading
+  inReplyTo  String?
+  threadRoot String?
+  parent     Activity?  @relation("Replies", fields: [inReplyTo], references: [id], onDelete: SetNull)
+  replies    Activity[] @relation("Replies")
+
+  // Content metadata
+  sensitive Boolean @default(false)
+  summary   String?
+  language  String?
+
+  // Engagement counters
+  likesCount   Int @default(0)
+  repliesCount Int @default(0)
+  repostsCount Int @default(0)
+
+  // Timestamps
+  published DateTime  @default(now())
+  updated   DateTime  @updatedAt
+  editedAt  DateTime?
+
+  // Soft delete
+  deleted   Boolean   @default(false)
+  deletedAt DateTime?
+
   // Relations
-  timelinePosts TimelinePost[]
-  
-  @@index([botType])
-  @@index([eventId])
+  inboxItems  InboxItem[]
+  attachments Attachment[]
+
+  @@index([actorId])
+  @@index([objectType, objectId])
+  @@index([type])
+  @@index([published])
+  @@index([inReplyTo])
+  @@index([threadRoot])
+  @@index([contextId, published])
+  @@index([deleted, published])
 }
 
-enum ChannelType {
-  GLOBAL
+// =============================================================================
+// Inbox & Follow Models
+// =============================================================================
+
+/// InboxItem tracks delivery of activities to users' inboxes
+model InboxItem {
+  id String @id @default(cuid())
+
+  userId     String
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityId String
+  activity   Activity @relation(fields: [activityId], references: [id], onDelete: Cascade)
+
+  read     Boolean       @default(false)
+  readAt   DateTime?
+  muted    Boolean       @default(false)
+  category InboxCategory @default(DEFAULT)
+  priority Int           @default(0)
+
+  createdAt DateTime @default(now())
+
+  @@unique([userId, activityId])
+  @@index([userId, read])
+  @@index([userId, category])
+  @@index([userId, priority, createdAt])
+  @@index([createdAt])
+}
+
+/// Follow represents a follow relationship between users
+model Follow {
+  id String @id @default(cuid())
+
+  followerId  String
+  follower    User   @relation("Following", fields: [followerId], references: [id], onDelete: Cascade)
+  followingId String
+  following   User   @relation("Followers", fields: [followingId], references: [id], onDelete: Cascade)
+
+  status     FollowStatus @default(PENDING)
+  createdAt  DateTime     @default(now())
+  acceptedAt DateTime?
+
+  @@unique([followerId, followingId])
+  @@index([followerId])
+  @@index([followingId])
+  @@index([status])
+}
+
+/// Attachment stores file upload metadata
+model Attachment {
+  id String @id @default(cuid())
+
+  userId     String
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  activityId String?
+  activity   Activity? @relation(fields: [activityId], references: [id], onDelete: SetNull)
+
+  type         AttachmentType
+  mimeType     String
+  url          String
+  thumbnailUrl String?
+
+  filename String
+  size     Int
+  width    Int?
+  height   Int?
+  duration Int?
+  blurhash String?
+  alt      String?
+
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([activityId])
+}
+
+// =============================================================================
+// Context System (v2)
+// =============================================================================
+
+/// Context is the unified abstraction for Events, Groups, and Conventions
+model Context {
+  id          String      @id @default(cuid())
+  type        ContextType
+  slug        String      @unique
+  handle      String?     @unique
+  name        String
+  description String?     @db.Text
+  avatarUrl   String?
+  bannerUrl   String?
+
+  ownerId String
+  owner   User   @relation("ContextOwner", fields: [ownerId], references: [id])
+
+  visibility Visibility @default(PUBLIC)
+  joinPolicy JoinPolicy @default(OPEN)
+
+  plugins  Json     @default("{}")
+  features String[] @default([])
+
+  isArchived Boolean   @default(false)
+  archivedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships Membership[]
+  activities  Activity[]   @relation("ContextActivities")
+
+  @@index([type])
+  @@index([ownerId])
+  @@index([visibility])
+  @@index([createdAt])
+}
+
+/// Membership represents a user's relationship to a Context
+model Membership {
+  id        String       @id @default(cuid())
+  contextId String
+  context   Context      @relation(fields: [contextId], references: [id], onDelete: Cascade)
+  userId    String
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      MemberRole   @default(MEMBER)
+  status    MemberStatus @default(APPROVED)
+
+  permissions    Json?
+  notifyPosts    Boolean @default(true)
+  notifyMentions Boolean @default(true)
+  notifyEvents   Boolean @default(true)
+  pluginData     Json    @default("{}")
+
+  joinedAt   DateTime  @default(now())
+  approvedAt DateTime?
+  approvedBy String?
+
+  @@unique([contextId, userId])
+  @@index([contextId, role])
+  @@index([userId])
+  @@index([status])
+}
+
+// =============================================================================
+// Enums
+// =============================================================================
+
+enum ActivityType {
+  CREATE
+  UPDATE
+  DELETE
+  LIKE
+  ANNOUNCE
+  FOLLOW
+  ACCEPT
+  REJECT
+  UNDO
+  JOIN
+  LEAVE
+  INVITE
+  RSVP
+  CHECKIN
+  FLAG
+  BLOCK
+}
+
+enum ActorType {
+  USER
+  BOT
+  SYSTEM
+}
+
+enum ObjectType {
+  NOTE
+  IMAGE
   EVENT
+  USER
+  ACTIVITY
+  VIDEO
+  ARTICLE
+  POLL
+  CONTEXT
 }
 
-enum BotType {
-  SYSTEM          // System-wide notifications
-  WELCOME         // Welcome messages for new users
-  EVENT_NOTIFY    // Event notifications
-  EVENT_MOD       // Event moderator bot
-  EVENT_HELPER    // Event helper bot
+enum InboxCategory {
+  DEFAULT
+  MENTION
+  DM
+  FOLLOW
+  LIKE
+  REPOST
+  REPLY
+  EVENT
+  GROUP
+  SYSTEM
+}
+
+enum FollowStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+}
+
+enum AttachmentType {
+  IMAGE
+  VIDEO
+  AUDIO
+  DOCUMENT
+}
+
+enum ContextType {
+  GROUP
+  EVENT
+  CONVENTION
+  CHANNEL
+}
+
+enum Visibility {
+  PUBLIC
+  PRIVATE
+  UNLISTED
+}
+
+enum JoinPolicy {
+  OPEN
+  APPROVAL
+  INVITE
+  CLOSED
+}
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MODERATOR
+  MEMBER
+  GUEST
+}
+
+enum MemberStatus {
+  PENDING
+  APPROVED
+  BANNED
+  LEFT
 }

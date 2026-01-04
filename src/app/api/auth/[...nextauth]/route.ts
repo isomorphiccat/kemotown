@@ -1,6 +1,8 @@
-import NextAuth from 'next-auth';
-import { authOptions } from '@/lib/auth'; // Adjust path if necessary
+/**
+ * Auth.js API Route Handler
+ * Handles all authentication requests at /api/auth/*
+ */
 
-const handler = NextAuth(authOptions);
+import { handlers } from '@/lib/auth';
 
-export { handler as GET, handler as POST };
+export const { GET, POST } = handlers;
