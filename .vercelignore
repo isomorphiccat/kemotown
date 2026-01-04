@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+
+# Build outputs (Vercel builds fresh)
+.next/
+out/
+
+# Archive
+v0-archive/
+
+# Test files
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+src/test/
+coverage/
+
+# Development
+.env.local
+.env.development.local
+.env.test.local
+*.log

@@ -1,0 +1,9 @@
+{
+  "$schema": "https://openapi.vercel.sh/vercel.json",
+  "framework": "nextjs",
+  "buildCommand": "prisma generate && next build",
+  "installCommand": "npm ci",
+  "devCommand": "next dev --turbopack",
+  "cleanUrls": true,
+  "trailingSlash": false
+}
