@@ -48,6 +48,16 @@ const googleClientId = process.env.GOOGLE_CLIENT_ID;
 const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
 const kakaoClientId = process.env.KAKAO_CLIENT_ID;
 const kakaoClientSecret = process.env.KAKAO_CLIENT_SECRET;
+const authSecret = process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET;
+
+// Log auth configuration status (safe - no secrets exposed)
+console.log('[Auth] Configuration status:', {
+  hasAuthSecret: !!authSecret,
+  hasGoogleCredentials: !!(googleClientId && googleClientSecret),
+  hasKakaoCredentials: !!(kakaoClientId && kakaoClientSecret),
+  googleClientIdLength: googleClientId?.length || 0,
+  nodeEnv: process.env.NODE_ENV,
+});
 
 // Build providers array dynamically based on available credentials
 const providers = [];
@@ -66,7 +76,8 @@ if (googleClientId && googleClientSecret) {
       },
     })
   );
-} else if (process.env.NODE_ENV === 'development') {
+  console.log('[Auth] Google provider configured');
+} else {
   console.warn('[Auth] Google OAuth not configured: missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET');
 }
 
@@ -77,14 +88,17 @@ if (kakaoClientId && kakaoClientSecret) {
       clientSecret: kakaoClientSecret,
     })
   );
-} else if (process.env.NODE_ENV === 'development') {
+  console.log('[Auth] Kakao provider configured');
+} else {
   console.warn('[Auth] Kakao OAuth not configured: missing KAKAO_CLIENT_ID or KAKAO_CLIENT_SECRET');
 }
+
+console.log('[Auth] Total providers configured:', providers.length);
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
   adapter: PrismaAdapter(db),
   // Support both AUTH_SECRET (v5) and NEXTAUTH_SECRET (v4 legacy)
-  secret: process.env.AUTH_SECRET || process.env.NEXTAUTH_SECRET,
+  secret: authSecret,
   trustHost: true,
   cookies: {
     pkceCodeVerifier: {

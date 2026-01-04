@@ -8,13 +8,37 @@ import { auth } from '@/lib/auth';
 import Link from 'next/link';
 import { OAuthButtons } from './OAuthButtons';
 
-export default async function LoginPage() {
+// Error messages for Auth.js error codes
+const errorMessages: Record<string, string> = {
+  Configuration: '서버 설정 오류가 발생했습니다. 관리자에게 문의해주세요.',
+  AccessDenied: '접근이 거부되었습니다.',
+  Verification: '인증 링크가 만료되었거나 이미 사용되었습니다.',
+  OAuthSignin: 'OAuth 로그인을 시작하는데 실패했습니다.',
+  OAuthCallback: 'OAuth 콜백 처리 중 오류가 발생했습니다.',
+  OAuthCreateAccount: '계정을 생성하는데 실패했습니다.',
+  EmailCreateAccount: '이메일 계정을 생성하는데 실패했습니다.',
+  Callback: '콜백 처리 중 오류가 발생했습니다.',
+  OAuthAccountNotLinked: '이미 다른 방법으로 가입된 이메일입니다.',
+  EmailSignin: '이메일 전송에 실패했습니다.',
+  CredentialsSignin: '로그인 정보가 올바르지 않습니다.',
+  SessionRequired: '로그인이 필요합니다.',
+  Default: '로그인 중 오류가 발생했습니다.',
+};
+
+interface LoginPageProps {
+  searchParams: Promise<{ error?: string; callbackUrl?: string }>;
+}
+
+export default async function LoginPage({ searchParams }: LoginPageProps) {
   const session = await auth();
+  const { error } = await searchParams;
 
   // Redirect if already logged in
   if (session?.user) {
     redirect('/');
   }
+
+  const errorMessage = error ? (errorMessages[error] || errorMessages.Default) : null;
 
   return (
     <div className="relative p-8 md:p-10 rounded-[2rem] bg-white/80 dark:bg-forest-900/80 backdrop-blur-md border border-white/60 dark:border-forest-800/60 shadow-[0_8px_40px_-12px_rgba(26,68,32,0.12)] overflow-hidden">
@@ -23,6 +47,20 @@ export default async function LoginPage() {
       <div className="absolute bottom-0 left-0 w-32 h-32 bg-gradient-to-tr from-accent-100/50 to-transparent dark:from-accent-900/30 rounded-full translate-y-1/2 -translate-x-1/2 blur-2xl" />
 
       <div className="relative">
+        {/* Error Message */}
+        {errorMessage && (
+          <div className="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-xl text-center">
+            <p className="text-red-600 dark:text-red-400 font-korean text-sm">
+              {errorMessage}
+            </p>
+            {error === 'Configuration' && (
+              <p className="text-red-500 dark:text-red-500 text-xs mt-1 font-mono">
+                Error code: {error}
+              </p>
+            )}
+          </div>
+        )}
+
         {/* Header */}
         <div className="text-center mb-10">
           {/* Logo Icon */}
