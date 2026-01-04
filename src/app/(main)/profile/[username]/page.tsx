@@ -1,6 +1,6 @@
 /**
  * User Profile Page
- * Display user profile with stats, interests, and social links
+ * Display user profile with stats, interests, social links, and timeline
  */
 
 import { notFound, redirect } from 'next/navigation';
@@ -11,6 +11,7 @@ import { ProfileHeader } from '@/components/users/ProfileHeader';
 import { ProfileStats } from '@/components/users/ProfileStats';
 import { InterestTags } from '@/components/users/InterestTags';
 import { SocialLinks } from '@/components/users/SocialLinks';
+import { UserTimeline } from '@/components/timeline/UserTimeline';
 
 interface ProfilePageProps {
   params: Promise<{ username: string }>;
@@ -77,6 +78,20 @@ export default async function ProfilePage({ params }: ProfilePageProps) {
               </div>
             </div>
           )}
+
+          {/* User Timeline */}
+          <div className="card-elevated p-6">
+            <h2 className="text-xl font-display font-bold text-forest-800 dark:text-cream-100 mb-4">
+              게시물
+            </h2>
+            <UserTimeline
+              userId={user.id}
+              currentUserId={session?.user?.id}
+              currentUserAvatar={session?.user?.image}
+              currentUserDisplayName={session?.user?.name}
+              showComposer={isOwnProfile}
+            />
+          </div>
         </div>
 
         {/* Sidebar */}
