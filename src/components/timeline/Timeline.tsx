@@ -1,428 +1,294 @@
 'use client';
 
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSession } from 'next-auth/react';
-import { formatDistanceToNow } from 'date-fns';
-import { ko } from 'date-fns/locale';
-import { Card } from '@/components/ui/card';
-import { Button } from '@/components/ui/button';
-import { cn } from '@/lib/utils';
-import Link from 'next/link';
+/**
+ * Timeline Component — Premium "Cozy Forest Town" Theme
+ * Refined timeline with SSE real-time updates
+ * Uses ActivityPub-style Activity model with v2 Context system
+ */
 
-interface TimelinePost {
-  id: string;
-  content: string;
-  channelType: string;
-  isBot: boolean;
-  botType?: string;
-  createdAt: string;
-  user?: {
-    id: string;
-    username: string | null;
-    furryName: string | null;
-    profilePictureUrl: string | null;
-  } | null;
-  botUser?: {
-    id: string;
-    username: string;
-    displayName: string;
-    avatarUrl: string | null;
-  } | null;
-  event?: {
-    id: string;
-    title: string;
-  } | null;
-  reactions: Array<{
-    id: string;
-    emoji: string;
-    userId: string;
-  }>;
-  reactionCount: number;
-  mentions: Array<{
-    id: string;
-    username: string | null;
-  }>;
-}
+import { useCallback } from 'react';
+import { TimelinePost } from './TimelinePost';
+import { PostForm } from './PostForm';
+import { useSSE, type SSEMessage } from '@/hooks/use-sse';
+import { trpc } from '@/lib/trpc';
+import { AlertCircle, RefreshCw, Wifi, WifiOff } from 'lucide-react';
+import { cn } from '@/lib/utils';
+import type { TimelineItem } from '@/types/timeline';
 
 interface TimelineProps {
-  eventId?: string;
-  limit?: number;
+  channel: 'GLOBAL' | 'CONTEXT';
+  contextId?: string;
+  currentUserId?: string;
   showPostForm?: boolean;
   className?: string;
 }
 
-export const Timeline: React.FC<TimelineProps> = ({ 
-  eventId, 
-  limit = 20, 
+export function Timeline({
+  channel,
+  contextId,
+  currentUserId,
   showPostForm = true,
-  className 
-}) => {
-  const { data: session } = useSession();
-  const [posts, setPosts] = useState<TimelinePost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [posting, setPosting] = useState(false);
-  const [postContent, setPostContent] = useState('');
-  const [nextCursor, setNextCursor] = useState<string | undefined>();
-  const [loadingMore, setLoadingMore] = useState(false);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const eventSourceRef = useRef<EventSource | null>(null);
+  className,
+}: TimelineProps) {
+  const utils = trpc.useUtils();
 
-  // Fetch initial posts
-  const fetchPosts = useCallback(async (cursor?: string) => {
-    try {
-      const params = new URLSearchParams();
-      if (eventId) params.append('eventId', eventId);
-      params.append('limit', limit.toString());
-      if (cursor) params.append('cursor', cursor);
+  // Determine which timeline to fetch
+  const isContextTimeline = channel === 'CONTEXT' && !!contextId;
 
-      const response = await fetch(`/api/timeline?${params}`);
-      if (!response.ok) throw new Error('Failed to fetch timeline');
+  // Fetch public timeline
+  const publicQuery = trpc.activity.publicTimeline.useInfiniteQuery(
+    { limit: 20 },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      enabled: !isContextTimeline,
+    }
+  );
 
-      const data = await response.json();
-      
-      if (cursor) {
-        setPosts(prev => [...prev, ...data.posts]);
+  // Fetch context timeline (for events, groups, conventions)
+  const contextQuery = trpc.activity.contextTimeline.useInfiniteQuery(
+    { contextId: contextId || '', limit: 20 },
+    {
+      getNextPageParam: (lastPage) => lastPage.nextCursor,
+      enabled: isContextTimeline,
+    }
+  );
+
+  // Use the appropriate query
+  const {
+    data,
+    isLoading,
+    isError,
+    error,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+  } = isContextTimeline ? contextQuery : publicQuery;
+
+  // Create post mutation
+  const createNoteMutation = trpc.activity.createNote.useMutation({
+    onSuccess: () => {
+      if (isContextTimeline) {
+        utils.activity.contextTimeline.invalidate();
       } else {
-        setPosts(data.posts);
+        utils.activity.publicTimeline.invalidate();
       }
-      
-      setNextCursor(data.nextCursor);
-    } catch (error) {
-      console.error('Error fetching timeline:', error);
-    } finally {
-      setLoading(false);
-      setLoadingMore(false);
-    }
-  }, [eventId, limit]);
+    },
+  });
 
-  // Fetch current user ID
-  useEffect(() => {
-    if (session?.user?.email) {
-      fetch('/api/users/me')
-        .then(res => res.json())
-        .then(data => setCurrentUserId(data.id))
-        .catch(err => console.error('Failed to fetch user ID:', err));
-    }
-  }, [session?.user?.email]);
-
-  // Set up real-time updates with reconnection
-  useEffect(() => {
-    fetchPosts();
-
-    let reconnectAttempts = 0;
-    const maxReconnectAttempts = 5;
-    const reconnectDelay = 2000; // 2 seconds
-
-    const setupSSE = () => {
-      const params = new URLSearchParams();
-      if (eventId) params.append('eventId', eventId);
-      
-      const eventSource = new EventSource(`/api/timeline/stream?${params}`);
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        console.log('SSE connection opened');
-        reconnectAttempts = 0; // Reset on successful connection
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-
-          // Filter messages for the correct channel
-          if (eventId && data.channelType === 'event' && data.post?.event?.id !== eventId) {
-            return; // ignore posts from other events
-          }
-          if (!eventId && data.channelType !== 'global') {
-            return; // ignore event posts on the global feed
-          }
-          
-          if (data.type === 'new_post') {
-            // Add new post to the beginning of the list
-            setPosts(prev => [data.post, ...prev]);
-          } else if (data.type === 'reaction_update') {
-            // Update reactions for a specific post
-            setPosts(prev => prev.map(post => {
-              if (post.id === data.postId) {
-                const updatedReactions = data.action === 'add'
-                  ? [...post.reactions, data.reaction]
-                  : post.reactions.filter(r => 
-                      !(r.userId === data.reaction.userId && r.emoji === data.reaction.emoji)
-                    );
-                
-                return {
-                  ...post,
-                  reactions: updatedReactions,
-                  reactionCount: updatedReactions.length
-                };
-              }
-              return post;
-            }));
-          }
-        } catch (error) {
-          console.error('Error parsing SSE data:', error);
-        }
-      };
-
-      eventSource.onerror = (error) => {
-        console.error('SSE error:', error);
-        eventSource.close();
-        
-        // Attempt to reconnect if we haven't exceeded max attempts
-        if (reconnectAttempts < maxReconnectAttempts) {
-          reconnectAttempts++;
-          console.log(`Attempting to reconnect (${reconnectAttempts}/${maxReconnectAttempts}) in ${reconnectDelay}ms...`);
-          setTimeout(setupSSE, reconnectDelay);
-        } else {
-          console.error('Max reconnection attempts reached. Real-time updates disabled.');
-        }
-      };
-    };
-
-    setupSSE();
-
-    return () => {
-      if (eventSourceRef.current) {
-        eventSourceRef.current.close();
+  // Delete post mutation
+  const deleteActivityMutation = trpc.activity.delete.useMutation({
+    onSuccess: () => {
+      if (isContextTimeline) {
+        utils.activity.contextTimeline.invalidate();
+      } else {
+        utils.activity.publicTimeline.invalidate();
       }
-    };
-  }, [eventId, fetchPosts]);
+    },
+  });
 
-  // Handle post submission
-  const handlePost = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!postContent.trim() || posting) return;
-
-    setPosting(true);
-    try {
-      const response = await fetch('/api/timeline/posts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          content: postContent.trim(),
-          eventId
-        })
-      });
-
-      if (!response.ok) throw new Error('Failed to create post');
-
-      setPostContent('');
-      // The new post will be added via SSE
-    } catch (error) {
-      console.error('Error creating post:', error);
-    } finally {
-      setPosting(false);
-    }
-  };
-
-  // Handle reaction toggle
-  const handleReaction = async (postId: string, emoji: string, hasReacted: boolean) => {
-    try {
-      const url = `/api/timeline/posts/${postId}/reactions${hasReacted ? `?emoji=${emoji}` : ''}`;
-      const response = await fetch(url, {
-        method: hasReacted ? 'DELETE' : 'POST',
-        headers: hasReacted ? {} : { 'Content-Type': 'application/json' },
-        body: hasReacted ? undefined : JSON.stringify({ emoji })
-      });
-
-      if (!response.ok) throw new Error('Failed to update reaction');
-    } catch (error) {
-      console.error('Error updating reaction:', error);
-    }
-  };
-
-  // Load more posts
-  const loadMore = () => {
-    if (nextCursor && !loadingMore) {
-      setLoadingMore(true);
-      fetchPosts(nextCursor);
-    }
-  };
-
-  // Render post content with mentions as links
-  const renderContent = (content: string) => {
-    return content.split(/(@\w+)/g).map((part, index) => {
-      if (part.startsWith('@')) {
-        const username = part.substring(1);
-        return (
-          <Link
-            key={index}
-            href={`/profile/${username}`}
-            className="text-primary hover:underline"
-          >
-            {part}
-          </Link>
-        );
+  // Like mutation
+  const likeMutation = trpc.activity.like.useMutation({
+    onSuccess: () => {
+      if (isContextTimeline) {
+        utils.activity.contextTimeline.invalidate();
+      } else {
+        utils.activity.publicTimeline.invalidate();
       }
-      return part;
+    },
+  });
+
+  // Unlike mutation
+  const unlikeMutation = trpc.activity.unlike.useMutation({
+    onSuccess: () => {
+      if (isContextTimeline) {
+        utils.activity.contextTimeline.invalidate();
+      } else {
+        utils.activity.publicTimeline.invalidate();
+      }
+    },
+  });
+
+  // Invalidate function for SSE and retry
+  const invalidateTimeline = useCallback(() => {
+    if (isContextTimeline) {
+      utils.activity.contextTimeline.invalidate();
+    } else {
+      utils.activity.publicTimeline.invalidate();
+    }
+  }, [isContextTimeline, utils.activity.contextTimeline, utils.activity.publicTimeline]);
+
+  // SSE real-time updates
+  const { isConnected, error: sseError, reconnect } = useSSE({
+    channel: isContextTimeline ? 'CONTEXT' : 'GLOBAL',
+    contextId: isContextTimeline ? contextId : undefined,
+    enabled: true,
+    onMessage: useCallback((message: SSEMessage) => {
+      if (message.type === 'new_post' || message.type === 'new_reaction') {
+        invalidateTimeline();
+      }
+    }, [invalidateTimeline]),
+  });
+
+  // Handlers
+  const handleCreatePost = async (content: string) => {
+    // Build addressing based on channel
+    const to = isContextTimeline && contextId
+      ? [`context:${contextId}`]
+      : ['public'];
+
+    await createNoteMutation.mutateAsync({
+      content,
+      to,
+      cc: isContextTimeline ? [] : ['followers'],
+      contextId: isContextTimeline ? contextId : undefined,
     });
   };
 
-  if (loading) {
-    return (
-      <div className={cn("flex items-center justify-center p-8", className)}>
-        <p className="text-gray-500 font-korean">타임라인을 불러오는 중...</p>
-      </div>
-    );
-  }
+  const handleDeletePost = async (activityId: string) => {
+    await deleteActivityMutation.mutateAsync({ activityId });
+  };
+
+  const handleLike = (activityId: string) => {
+    likeMutation.mutate({ targetActivityId: activityId });
+  };
+
+  const handleUnlike = (activityId: string) => {
+    unlikeMutation.mutate({ targetActivityId: activityId });
+  };
+
+  // Flatten items from pages and cast to client types
+  const items = (data?.pages.flatMap((page) => page.items) ?? []) as TimelineItem[];
 
   return (
-    <div className={cn("space-y-4", className)}>
-      {/* Post Form */}
-      {showPostForm && session && (
-        <Card className="p-4">
-          <form onSubmit={handlePost} className="space-y-3">
-            <textarea
-              value={postContent}
-              onChange={(e) => setPostContent(e.target.value)}
-              placeholder="무슨 생각을 하고 계신가요?"
-              className="w-full p-3 border rounded-lg resize-none focus:outline-none focus:ring-2 focus:ring-primary font-korean"
-              rows={3}
-              maxLength={500}
-            />
-            <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-500 font-korean">
-                {postContent.length}/500
-              </span>
-              <Button 
-                type="submit" 
-                disabled={!postContent.trim() || posting}
-                className="font-korean"
-              >
-                {posting ? '게시 중...' : '게시하기'}
-              </Button>
-            </div>
-          </form>
-        </Card>
+    <div className={cn('space-y-6', className)}>
+      {/* Connection Status */}
+      {sseError && (
+        <div className="p-4 rounded-2xl bg-yellow-50/80 dark:bg-yellow-900/20 border border-yellow-200/80 dark:border-yellow-800/40 flex items-center justify-between gap-4 animate-fade-in">
+          <div className="flex items-center gap-3 text-yellow-700 dark:text-yellow-400">
+            <WifiOff className="w-5 h-5 shrink-0" />
+            <span className="text-sm font-medium font-korean">{sseError}</span>
+          </div>
+          <button
+            type="button"
+            onClick={reconnect}
+            className="shrink-0 px-4 py-2 text-sm font-medium bg-yellow-100 dark:bg-yellow-900/40 hover:bg-yellow-200 dark:hover:bg-yellow-900/60 text-yellow-800 dark:text-yellow-300 rounded-xl transition-colors font-korean"
+          >
+            재연결
+          </button>
+        </div>
       )}
 
-      {/* Timeline Posts */}
-      <div className="space-y-3">
-        {posts.length === 0 ? (
-          <Card className="p-8 text-center">
-            <p className="text-gray-500 font-korean">
-              아직 게시물이 없습니다. 첫 번째 게시물을 작성해보세요!
-            </p>
-          </Card>
-        ) : (
-          posts.map((post) => (
-            <Card key={post.id} className="p-4">
-              <div className="flex space-x-3">
-                {/* Avatar */}
-                <div className="flex-shrink-0">
-                  <div className={cn(
-                    "w-10 h-10 rounded-full flex items-center justify-center",
-                    post.isBot ? "bg-blue-100" : "bg-primary/10"
-                  )}>
-                    <span className={cn(
-                      "text-sm font-bold",
-                      post.isBot ? "text-blue-600" : "text-primary"
-                    )}>
-                      {post.isBot ? '🤖' : 
-                       post.user ? (post.user.furryName || post.user.username || '?').charAt(0).toUpperCase() : '?'}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  {/* Header */}
-                  <div className="flex items-baseline space-x-2 mb-1">
-                    <Link 
-                      href={post.isBot ? '#' : post.user ? `/profile/${post.user.username}` : '#'}
-                      className={cn(
-                        "font-semibold",
-                        post.isBot ? "text-blue-600 cursor-default" : "text-gray-900 dark:text-white hover:underline"
-                      )}
-                    >
-                      <span className="font-korean">
-                        {post.isBot && post.botUser ? post.botUser.displayName :
-                         post.user ? (post.user.furryName || post.user.username || 'Anonymous') : 'Anonymous'}
-                      </span>
-                    </Link>
-                    {post.user?.username && !post.isBot && (
-                      <span className="text-sm text-gray-500">@{post.user.username}</span>
-                    )}
-                    {post.isBot && post.botType && (
-                      <span className="text-xs bg-blue-100 text-blue-600 px-2 py-0.5 rounded-full font-korean">
-                        {post.botType === 'SYSTEM' ? '시스템' :
-                         post.botType === 'WELCOME' ? '환영봇' :
-                         post.botType === 'EVENT_NOTIFY' ? '이벤트 알림' :
-                         post.botType === 'EVENT_MOD' ? '이벤트 관리' :
-                         '도우미'}
-                      </span>
-                    )}
-                    <span className="text-sm text-gray-500">·</span>
-                    <time className="text-sm text-gray-500 font-korean">
-                      {formatDistanceToNow(new Date(post.createdAt), { 
-                        addSuffix: true,
-                        locale: ko 
-                      })}
-                    </time>
-                  </div>
-
-                  {/* Post content */}
-                  <div className="text-gray-900 dark:text-gray-100 whitespace-pre-wrap break-words font-korean">
-                    {renderContent(post.content)}
-                  </div>
-
-                  {/* Event link */}
-                  {post.event && (
-                    <Link 
-                      href={`/events/${post.event.id}`}
-                      className="inline-flex items-center mt-2 text-sm text-primary hover:underline font-korean"
-                    >
-                      📅 {post.event.title}
-                    </Link>
-                  )}
-
-                  {/* Reactions */}
-                  <div className="flex items-center space-x-4 mt-3">
-                    {['👍', '❤️', '😂', '😮', '😢'].map((emoji) => {
-                      const userReaction = post.reactions.find(
-                        r => r.emoji === emoji && r.userId === currentUserId
-                      );
-                      const count = post.reactions.filter(r => r.emoji === emoji).length;
-
-                      return (
-                        <button
-                          key={emoji}
-                          onClick={() => handleReaction(post.id, emoji, !!userReaction)}
-                          className={cn(
-                            "flex items-center space-x-1 px-2 py-1 rounded transition-colors",
-                            userReaction 
-                              ? "bg-primary/10 text-primary" 
-                              : "hover:bg-gray-100 dark:hover:bg-gray-800"
-                          )}
-                        >
-                          <span>{emoji}</span>
-                          {count > 0 && (
-                            <span className="text-sm">{count}</span>
-                          )}
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
-              </div>
-            </Card>
-          ))
-        )}
-      </div>
-
-      {/* Load More */}
-      {nextCursor && (
-        <div className="text-center pt-4">
-          <Button 
-            onClick={loadMore} 
-            variant="outline"
-            disabled={loadingMore}
-            className="font-korean"
-          >
-            {loadingMore ? '불러오는 중...' : '더 보기'}
-          </Button>
+      {/* Real-time Indicator */}
+      {isConnected && !sseError && (
+        <div className="connection-badge connection-badge-connected animate-fade-in">
+          <Wifi className="w-4 h-4" />
+          <span className="font-korean">실시간 업데이트 연결됨</span>
         </div>
+      )}
+
+      {/* Post Form */}
+      {showPostForm && currentUserId && (
+        <div className="animate-fade-in-up">
+          <PostForm onSubmit={handleCreatePost} />
+        </div>
+      )}
+
+      {/* Loading State */}
+      {isLoading && (
+        <div className="flex flex-col items-center justify-center py-16 gap-4">
+          <div className="spinner w-8 h-8" />
+          <p className="text-warm-500 dark:text-warm-400 text-sm font-korean">
+            타임라인을 불러오는 중...
+          </p>
+        </div>
+      )}
+
+      {/* Error State */}
+      {isError && (
+        <div className="p-8 rounded-2xl bg-red-50/80 dark:bg-red-900/20 border border-red-200/80 dark:border-red-800/40 text-center animate-fade-in">
+          <div className="w-12 h-12 rounded-2xl bg-red-100 dark:bg-red-900/40 flex items-center justify-center mx-auto mb-4">
+            <AlertCircle className="w-6 h-6 text-red-600 dark:text-red-400" />
+          </div>
+          <h3 className="text-red-800 dark:text-red-300 font-bold mb-2 font-korean">
+            타임라인을 불러오는데 실패했습니다
+          </h3>
+          <p className="text-sm text-red-600 dark:text-red-400 mb-4 font-korean">
+            {error instanceof Error ? error.message : '알 수 없는 오류'}
+          </p>
+          <button
+            type="button"
+            onClick={() => invalidateTimeline()}
+            className="px-5 py-2.5 bg-red-100 dark:bg-red-900/40 hover:bg-red-200 dark:hover:bg-red-900/60 text-red-800 dark:text-red-300 rounded-xl text-sm font-medium transition-colors font-korean"
+          >
+            다시 시도
+          </button>
+        </div>
+      )}
+
+      {/* Posts List */}
+      {!isLoading && !isError && (
+        <>
+          {items.length === 0 ? (
+            <div className="p-12 rounded-2xl bg-white/60 dark:bg-forest-900/40 border border-warm-200/60 dark:border-forest-800/60 text-center animate-fade-in">
+              <div className="w-14 h-14 rounded-2xl bg-forest-100 dark:bg-forest-800 flex items-center justify-center mx-auto mb-4">
+                <svg className="w-7 h-7 text-forest-500 dark:text-forest-400" fill="none" viewBox="0 0 24 24" strokeWidth={1.5} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M8.625 12a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H8.25m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0H12m4.125 0a.375.375 0 11-.75 0 .375.375 0 01.75 0zm0 0h-.375M21 12c0 4.556-4.03 8.25-9 8.25a9.764 9.764 0 01-2.555-.337A5.972 5.972 0 015.41 20.97a5.969 5.969 0 01-.474-.065 4.48 4.48 0 00.978-2.025c.09-.457-.133-.901-.467-1.226C3.93 16.178 3 14.189 3 12c0-4.556 4.03-8.25 9-8.25s9 3.694 9 8.25z" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-bold text-forest-800 dark:text-cream-50 mb-2 font-korean">
+                아직 게시물이 없습니다
+              </h3>
+              <p className="text-sm text-warm-500 dark:text-warm-400 font-korean">
+                첫 번째 게시물을 작성해보세요!
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {items.map((item, index) => (
+                <div
+                  key={item.activity.id}
+                  className="animate-fade-in-up"
+                  style={{ animationDelay: `${index * 50}ms` }}
+                >
+                  <TimelinePost
+                    item={item}
+                    currentUserId={currentUserId}
+                    onDelete={handleDeletePost}
+                    onLike={handleLike}
+                    onUnlike={handleUnlike}
+                  />
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Load More */}
+          {hasNextPage && (
+            <div className="text-center pt-4">
+              <button
+                type="button"
+                onClick={() => fetchNextPage()}
+                disabled={isFetchingNextPage}
+                className="group px-6 py-3 bg-white/70 dark:bg-forest-900/70 border-2 border-warm-200/80 dark:border-forest-700/80 text-forest-700 dark:text-cream-100 rounded-xl hover:border-forest-300 dark:hover:border-forest-600 hover:bg-white dark:hover:bg-forest-800 disabled:opacity-60 disabled:cursor-not-allowed font-medium transition-all duration-200 font-korean"
+              >
+                {isFetchingNextPage ? (
+                  <span className="flex items-center justify-center gap-2">
+                    <RefreshCw className="w-4 h-4 animate-spin" />
+                    불러오는 중...
+                  </span>
+                ) : (
+                  <span className="flex items-center justify-center gap-2">
+                    더 보기
+                    <svg className="w-4 h-4 transform group-hover:translate-y-0.5 transition-transform" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+                    </svg>
+                  </span>
+                )}
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );
-};
+}

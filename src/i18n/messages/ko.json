@@ -1,0 +1,108 @@
+{
+  "common": {
+    "loading": "로딩 중...",
+    "error": "오류",
+    "success": "성공",
+    "cancel": "취소",
+    "confirm": "확인",
+    "save": "저장",
+    "delete": "삭제",
+    "edit": "수정",
+    "create": "생성",
+    "submit": "제출",
+    "back": "뒤로",
+    "next": "다음",
+    "previous": "이전",
+    "search": "검색",
+    "filter": "필터",
+    "sort": "정렬",
+    "viewAll": "전체 보기",
+    "showMore": "더 보기",
+    "showLess": "접기"
+  },
+  "nav": {
+    "dashboard": "대시보드",
+    "events": "이벤트",
+    "community": "커뮤니티",
+    "profile": "프로필",
+    "settings": "설정",
+    "logout": "로그아웃",
+    "login": "로그인"
+  },
+  "auth": {
+    "signIn": "로그인",
+    "signOut": "로그아웃",
+    "signUp": "회원가입",
+    "welcomeBack": "환영합니다!",
+    "loginWith": "{provider}로 로그인",
+    "noAccount": "계정이 없으신가요?",
+    "haveAccount": "이미 계정이 있으신가요?"
+  },
+  "dashboard": {
+    "welcome": "환영합니다, {name}님!",
+    "myEvents": "내 이벤트",
+    "timeline": "타임라인",
+    "upcomingEvents": "다가오는 이벤트",
+    "newMembers": "새로운 멤버"
+  },
+  "events": {
+    "title": "이벤트",
+    "createEvent": "이벤트 만들기",
+    "editEvent": "이벤트 수정",
+    "deleteEvent": "이벤트 삭제",
+    "eventDetails": "이벤트 세부정보",
+    "attending": "참가",
+    "considering": "고려중",
+    "notAttending": "불참",
+    "rsvp": "참석 여부",
+    "host": "주최자",
+    "location": "장소",
+    "date": "날짜",
+    "time": "시간",
+    "price": "가격",
+    "free": "무료",
+    "capacity": "정원",
+    "attendees": "참석자",
+    "description": "설명",
+    "tags": "태그"
+  },
+  "profile": {
+    "title": "프로필",
+    "editProfile": "프로필 수정",
+    "username": "사용자명",
+    "furryName": "퍼소나 이름",
+    "bio": "소개",
+    "species": "종",
+    "interests": "관심사",
+    "socialLinks": "소셜 링크",
+    "profilePicture": "프로필 사진",
+    "fursuitPhotos": "퍼슈트 사진",
+    "eventsAttended": "참석한 이벤트"
+  },
+  "form": {
+    "required": "필수",
+    "optional": "선택",
+    "invalidEmail": "유효하지 않은 이메일",
+    "invalidUrl": "유효하지 않은 URL",
+    "tooShort": "너무 짧습니다",
+    "tooLong": "너무 깁니다",
+    "enterText": "텍스트를 입력하세요",
+    "selectOption": "옵션을 선택하세요",
+    "uploadImage": "이미지 업로드"
+  },
+  "errors": {
+    "somethingWentWrong": "문제가 발생했습니다",
+    "pageNotFound": "페이지를 찾을 수 없습니다",
+    "unauthorized": "권한이 없습니다",
+    "forbidden": "접근이 거부되었습니다",
+    "notFound": "찾을 수 없습니다",
+    "serverError": "서버 오류",
+    "tryAgain": "다시 시도해주세요"
+  },
+  "empty": {
+    "noEvents": "이벤트가 없습니다",
+    "noUsers": "사용자가 없습니다",
+    "noResults": "검색 결과가 없습니다",
+    "createFirst": "첫 번째를 만들어보세요!"
+  }
+}

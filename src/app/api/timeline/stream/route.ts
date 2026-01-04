@@ -1,128 +1,151 @@
 /**
- * Timeline Stream API Route
- * GET /api/timeline/stream - Server-Sent Events for real-time timeline updates
+ * Timeline SSE (Server-Sent Events) Endpoint
+ * Provides real-time updates for timeline posts
+ * Vercel-compatible with connection management
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth';
-import { clients, cleanupOldConnections } from '@/lib/timeline/broadcast';
+import { NextRequest } from 'next/server';
+import { db } from '@/server/db';
+import { auth } from '@/lib/auth';
+import {
+  addConnection,
+  removeConnection,
+  startConnectionCleanup,
+} from '@/server/services/sse.service';
 
-// Connection limits for security
-const MAX_CONNECTIONS_PER_USER = 5;
-const MAX_CONNECTION_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+const HEARTBEAT_INTERVAL = 15000; // 15 seconds
+const MAX_CONNECTION_TIME = 24 * 60 * 60 * 1000; // 24 hours
 
+// Start connection cleanup
+startConnectionCleanup();
+
+/**
+ * GET /api/timeline/stream
+ * Server-Sent Events endpoint for real-time timeline updates
+ *
+ * Supported channels:
+ * - GLOBAL: Public timeline (no auth required)
+ * - HOME: Authenticated user's home timeline (auth required)
+ * - EVENT:{eventId}: Legacy event timeline (auth + RSVP required)
+ * - CONTEXT:{contextId}: Context timeline (auth + membership for private contexts)
+ */
 export async function GET(request: NextRequest) {
-  const session = await getServerSession(authOptions);
-  if (!session?.user?.email) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  const session = await auth();
+  const { searchParams } = new URL(request.url);
+  const channel = searchParams.get('channel') || 'GLOBAL';
+  const eventId = searchParams.get('eventId');
+  const contextId = searchParams.get('contextId');
+
+  // Verify access for home timeline
+  if (channel === 'HOME') {
+    if (!session?.user) {
+      return new Response('Unauthorized: Login required for home timeline', { status: 401 });
+    }
   }
 
-  // Clean up old connections periodically
-  cleanupOldConnections();
+  // Verify access for context timelines (v2)
+  if (channel === 'CONTEXT' && contextId) {
+    const context = await db.context.findUnique({
+      where: { id: contextId },
+      select: { visibility: true },
+    });
 
-  // Check connection limits per user
-  const userEmail = session.user.email;
-  const userConnections = Array.from(clients.keys()).filter(id => id.startsWith(userEmail));
-  
-  if (userConnections.length >= MAX_CONNECTIONS_PER_USER) {
-    return NextResponse.json({ 
-      error: 'Too many connections. Please close other tabs or refresh.' 
-    }, { status: 429 });
+    if (!context) {
+      return new Response('Not Found: Context does not exist', { status: 404 });
+    }
+
+    // For private contexts, require membership
+    if (context.visibility === 'PRIVATE') {
+      if (!session?.user) {
+        return new Response('Unauthorized: Login required for private context', { status: 401 });
+      }
+
+      const membership = await db.membership.findUnique({
+        where: {
+          contextId_userId: {
+            contextId,
+            userId: session.user.id,
+          },
+        },
+        select: { status: true },
+      });
+
+      if (membership?.status !== 'APPROVED') {
+        return new Response('Forbidden: Membership required for private context', {
+          status: 403,
+        });
+      }
+    }
   }
 
-  // Get query parameters - eventId will be used in future for channel-specific streaming
-  // const searchParams = request.nextUrl.searchParams;
-  // const eventId = searchParams.get('eventId') || 'global';
-  
-  // Create unique client ID
-  const clientId = `${userEmail}-${Date.now()}`;
-  
-  // Create ReadableStream for SSE
+  // Note: Legacy EVENT channel removed - use CONTEXT channel for events via Context system
+
+  // Build channel key for connection tracking
+  let channelKey = channel;
+  if (contextId) {
+    channelKey = `CONTEXT:${contextId}`;
+  } else if (eventId) {
+    channelKey = `EVENT:${eventId}`;
+  } else if (channel === 'HOME' && session?.user) {
+    channelKey = `HOME:${session.user.id}`;
+  }
+
+  // Create a ReadableStream for SSE
   const stream = new ReadableStream({
     start(controller) {
-      // Store the controller for this client with metadata
-      clients.set(clientId, {
-        controller,
-        connectedAt: Date.now(),
-        userEmail
-      });
-      
+      // Add connection
+      addConnection(channelKey, controller, session?.user?.id);
+
       // Send initial connection message
-      const encoder = new TextEncoder();
-      try {
-        controller.enqueue(
-          encoder.encode(`data: ${JSON.stringify({ type: 'connected', clientId })}\n\n`)
-        );
-      } catch (error) {
-        console.error(`Failed to send initial message to client ${clientId}:`, error);
-        clients.delete(clientId);
-        controller.close();
-        return;
-      }
-      
-      // Set up ping interval to keep connection alive
-      const pingInterval = setInterval(() => {
+      const initialMessage = `data: ${JSON.stringify({ type: 'connected', channel: channelKey })}\n\n`;
+      controller.enqueue(new TextEncoder().encode(initialMessage));
+
+      // Set up heartbeat
+      const heartbeatInterval = setInterval(() => {
         try {
-          if (!clients.has(clientId)) {
-            clearInterval(pingInterval);
-            return;
-          }
-          controller.enqueue(encoder.encode(': ping\n\n'));
-        } catch (error) {
-          console.error(`Ping failed for client ${clientId}:`, error);
-          clearInterval(pingInterval);
-          clients.delete(clientId);
-          try {
-            controller.close();
-          } catch (closeError) {
-            console.error(`Failed to close controller for client ${clientId}:`, closeError);
-          }
+          const heartbeat = `: heartbeat\n\n`;
+          controller.enqueue(new TextEncoder().encode(heartbeat));
+        } catch {
+          // Connection closed
+          clearInterval(heartbeatInterval);
+          removeConnection(channelKey, controller);
         }
-      }, 30000); // Ping every 30 seconds
-      
-      // Store cleanup function for this client
-      const cleanup = () => {
-        clearInterval(pingInterval);
-        clients.delete(clientId);
-      };
+      }, HEARTBEAT_INTERVAL);
 
       // Set up connection timeout
-      const connectionTimeout = setTimeout(() => {
-        if (clients.has(clientId)) {
-          console.log(`Closing long-running connection for client ${clientId}`);
-          cleanup();
-          try {
-            controller.close();
-          } catch (error) {
-            console.error(`Failed to close long-running connection for client ${clientId}:`, error);
-          }
-        }
-      }, MAX_CONNECTION_DURATION);
-      
+      const timeoutId = setTimeout(() => {
+        clearInterval(heartbeatInterval);
+        controller.close();
+        removeConnection(channelKey, controller);
+      }, MAX_CONNECTION_TIME);
+
       // Clean up on close
-      request.signal.addEventListener('abort', () => {
-        cleanup();
-        clearTimeout(connectionTimeout);
-        try {
-          controller.close();
-        } catch (error) {
-          console.error(`Failed to close controller for client ${clientId}:`, error);
-        }
-      });
+      const cleanup = () => {
+        clearInterval(heartbeatInterval);
+        clearTimeout(timeoutId);
+        removeConnection(channelKey, controller);
+      };
+
+      // Store cleanup function
+      (controller as unknown as { cleanup?: () => void }).cleanup = cleanup;
     },
-    
-    cancel() {
-      // Clean up when client disconnects
-      clients.delete(clientId);
-    }
+
+    cancel(controller) {
+      // Clean up on client disconnect
+      const cleanup = (controller as unknown as { cleanup?: () => void }).cleanup;
+      if (cleanup) {
+        cleanup();
+      }
+    },
   });
 
-  return new NextResponse(stream, {
+  // Return SSE response
+  return new Response(stream, {
     headers: {
       'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+      'X-Accel-Buffering': 'no', // Disable nginx buffering
     },
   });
 }

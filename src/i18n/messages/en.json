@@ -1,0 +1,108 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "error": "Error",
+    "success": "Success",
+    "cancel": "Cancel",
+    "confirm": "Confirm",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "create": "Create",
+    "submit": "Submit",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "sort": "Sort",
+    "viewAll": "View All",
+    "showMore": "Show More",
+    "showLess": "Show Less"
+  },
+  "nav": {
+    "dashboard": "Dashboard",
+    "events": "Events",
+    "community": "Community",
+    "profile": "Profile",
+    "settings": "Settings",
+    "logout": "Logout",
+    "login": "Login"
+  },
+  "auth": {
+    "signIn": "Sign In",
+    "signOut": "Sign Out",
+    "signUp": "Sign Up",
+    "welcomeBack": "Welcome back!",
+    "loginWith": "Sign in with {provider}",
+    "noAccount": "Don't have an account?",
+    "haveAccount": "Already have an account?"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {name}!",
+    "myEvents": "My Events",
+    "timeline": "Timeline",
+    "upcomingEvents": "Upcoming Events",
+    "newMembers": "New Members"
+  },
+  "events": {
+    "title": "Events",
+    "createEvent": "Create Event",
+    "editEvent": "Edit Event",
+    "deleteEvent": "Delete Event",
+    "eventDetails": "Event Details",
+    "attending": "Attending",
+    "considering": "Considering",
+    "notAttending": "Not Attending",
+    "rsvp": "RSVP",
+    "host": "Host",
+    "location": "Location",
+    "date": "Date",
+    "time": "Time",
+    "price": "Price",
+    "free": "Free",
+    "capacity": "Capacity",
+    "attendees": "Attendees",
+    "description": "Description",
+    "tags": "Tags"
+  },
+  "profile": {
+    "title": "Profile",
+    "editProfile": "Edit Profile",
+    "username": "Username",
+    "furryName": "Furry Name",
+    "bio": "Bio",
+    "species": "Species",
+    "interests": "Interests",
+    "socialLinks": "Social Links",
+    "profilePicture": "Profile Picture",
+    "fursuitPhotos": "Fursuit Photos",
+    "eventsAttended": "Events Attended"
+  },
+  "form": {
+    "required": "Required",
+    "optional": "Optional",
+    "invalidEmail": "Invalid email",
+    "invalidUrl": "Invalid URL",
+    "tooShort": "Too short",
+    "tooLong": "Too long",
+    "enterText": "Enter text",
+    "selectOption": "Select an option",
+    "uploadImage": "Upload image"
+  },
+  "errors": {
+    "somethingWentWrong": "Something went wrong",
+    "pageNotFound": "Page not found",
+    "unauthorized": "Unauthorized",
+    "forbidden": "Forbidden",
+    "notFound": "Not found",
+    "serverError": "Server error",
+    "tryAgain": "Please try again"
+  },
+  "empty": {
+    "noEvents": "No events",
+    "noUsers": "No users",
+    "noResults": "No results found",
+    "createFirst": "Create the first one!"
+  }
+}
