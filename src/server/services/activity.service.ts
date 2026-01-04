@@ -200,6 +200,9 @@ const activityInclude = {
  *
  * If contextId is provided, the activity will be associated with that context
  * and the context address will be automatically added to addressing if not present.
+ *
+ * For PUBLIC contexts, posts are also made public (appear on global timeline).
+ * For PRIVATE/UNLISTED contexts, posts remain context-only.
  */
 export async function createNoteActivity(
   actorId: string,
@@ -211,6 +214,19 @@ export async function createNoteActivity(
 
   if (input.contextId) {
     const contextAddress = `context:${input.contextId}`;
+
+    // Fetch context to check its visibility
+    const context = await db.context.findUnique({
+      where: { id: input.contextId },
+      select: { visibility: true },
+    });
+
+    // For PUBLIC contexts, automatically include 'public' in addressing
+    // so posts appear on the global timeline
+    if (context?.visibility === 'PUBLIC' && !to.includes('public')) {
+      to.push('public');
+    }
+
     // Add context to addressing if not already present
     if (!to.includes(contextAddress) && !cc.includes(contextAddress)) {
       // If public, add context to cc; otherwise add to 'to'

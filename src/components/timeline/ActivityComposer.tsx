@@ -82,11 +82,11 @@ export function ActivityComposer({
     onSuccess: () => {
       setContent('');
       // Invalidate relevant timelines
+      // Always invalidate public/home since context posts in PUBLIC contexts also appear there
+      utils.activity.publicTimeline.invalidate();
+      utils.activity.homeTimeline.invalidate();
       if (contextId) {
         utils.activity.contextTimeline.invalidate({ contextId });
-      } else {
-        utils.activity.publicTimeline.invalidate();
-        utils.activity.homeTimeline.invalidate();
       }
       onSuccess?.();
     },
